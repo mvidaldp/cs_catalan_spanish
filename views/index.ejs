@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!--Let browser know website is not scalable (no zoom in/out)-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <!--Import materialize.css-->
+  <!--Local import-->
+  <link type="text/css" rel="stylesheet" href="static/css/materialize.min.css" media="screen,projection" />
+  <!--Online import-->
+  <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"> -->
+  <!--Import Google Icon Font-->
+  <!--Online version-->
+  <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"> -->
+  <!--Local import and customized CSS-->
+  <link type="text/css" rel="stylesheet" href="static/css/style.css">
+  <title>Westdrive Survey</title>
+</head>
+
+<body>
+  <main>
+    <div class="container">
+      <div id="logos" class="row">
+        <div class="col s6 center-align fh-height">
+          <img src="static/img/logo-uni.png">
+        </div>
+        <div class="col s6 center-align fh-height">
+          <img src="static/img/udg_logo.png">
+        </div>
+      </div>
+      <div id="instructions" class="row content-height">
+        <div class="col s12">
+          <div class="row center-align">
+            Benvinguts,<br>
+            <br>
+            Sóc una estudiant de Grau en Sciences cognitives i estic desenvolupament el meu Treball de Final de Grau
+            sobre la communicació mediada per ordinador.<br>
+
+            Per aixó he preparat un estudi qui simula una conversació typic per conèixer algun. M'agradaria si tens
+            una mica de temps per participar. L'estudi triga aproximadament mitja hora.<br>
+
+            Vull demanar formalment si accepteu de col·laborar voluntàriament en aquest estudi. Les respostes seran
+            tractades de manera confidencial i en cap moment apareixerà el nom. Les dades seran utilitzades
+            estrictament per a fins acadèmics.
+            <br><br>
+            Ben cordialment,
+            <br>
+            <br>
+            Monika Tröber
+          </div>
+        </div>
+        <div class="row center-align">
+          <button id="start" class="btn lighten-3">
+            Vull participar
+            <i class="material-icons right">send</i>
+          </button>
+        </div>
+      </div>
+      <div id="thanks" class="row content-height">
+        <div class="col s12">
+          <div class="row center-align">
+            <h5 class="header col s12 q-height">Moltes gràcies per la teva participació!</h5>
+          </div>
+        </div>
+      </div>
+      <div id="survey">
+        <div class="row">
+          <div class="col s12 center-align">
+            <%- content %>
+          </div>
+        </div>
+        <div class="row">
+          <p class="flow-text">&nbsp;</p>
+          <p class="flow-text">&nbsp;</p>
+        </div>
+        <div class="row">
+          <div class="progress col s6 offset-s3">
+            <div id="progressbar" class="determinate" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!--JavaScript at end of body for optimized loading-->
+  <!--Import jQuery-->
+  <!--Local import-->
+  <script src="static/js/jquery-3.5.0.min.js"></script>
+  <!--Online version-->
+  <!-- <script src="https://code.jquery.com/jquery-3.5.0.min.js"></script> -->
+  <!--Import materialize.js-->
+  <!--Local import-->
+  <script src="static/js/materialize.min.js"></script>
+  <!--Online import-->
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script> -->
+  <!--Customized Javascript-->
+  <script>
+    const nQuestions = parseInt('<%- nQuestions %>')
+  </script>
+  <script src="static/js/script.js"></script>
+</body>
+
+</html>

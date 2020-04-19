@@ -1,0 +1,140 @@
+html {
+  height: 100%;
+  font-size: x-large;
+  /* adjust it when we have the actual screens */
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  -khtml-user-select: none;
+  /* Konqueror HTML */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+  user-select: none;
+  /* Non-prefixed version, currently
+                                supported by Chrome and Opera */
+}
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/static/fonts/MaterialIcons-Regular.eot);
+  /* For IE6-8 */
+  src: local('Material Icons'),
+    local('MaterialIcons-Regular'),
+    url(/static/fonts/MaterialIcons-Regular.woff2) format('woff2'),
+    url(/static/fonts/MaterialIcons-Regular.woff) format('woff'),
+    url(/static/fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+#input-field-code {
+  float: none;
+  margin-right: auto;
+}
+
+img {
+  height: 20vh;
+  margin: 5vh;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+#vr-status {
+  position: absolute;
+  top: 0;
+  right: 30px;
+  padding-top: 30px;
+}
+
+.btn-large {
+  margin: 20px;
+  width: 175px;
+}
+
+.numpad {
+  height: 60px;
+  width: 60px;
+  font-size: 20px;
+}
+
+input[type=text]:not(.browser-default) {
+  font-size: 30px;
+}
+
+/* input[type="range"] {
+  -webkit-appearance: none;
+} */
+
+/* input[type=range]::-webkit-slider-runnable-track {
+  width: 300px;
+  height: 20px;
+  border: none;
+  border-radius: 3px;
+} */
+
+.rangev {
+  margin: 0;
+}
+
+.thumb-ico {
+  position: relative;
+  top: 10px;
+  margin: 25px;
+}
+
+.up {
+  top: -10px;
+}
+
+.content-height {
+  height: 40vh;
+}
+
+.fh-height {
+  height: 25vh;
+}
+
+.q-height {
+  height: 20vh;
+}
+
+.a-height {
+  height: 25vh;
+}
+
+.flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+.age-row {
+  float: none;
+  margin: 0 auto;
+}
