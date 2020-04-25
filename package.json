@@ -13,14 +13,17 @@
   "author": "mvidaldp",
   "license": "MIT",
   "dependencies": {
-    "async": "^3.2.0",
-    "ejs": "^3.0.2",
+    "ejs": "^3.1.2",
     "express": "^4.17.1",
     "google-spreadsheet": "^3.0.11",
     "googleapis": "^49.0.0",
     "sqlite3": "^4.1.1"
   },
   "devDependencies": {
-    "eslint": "^6.8.0"
+    "eslint": "^6.8.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1"
   }
 }
