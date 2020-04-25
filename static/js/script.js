@@ -5,35 +5,8 @@ let answers = []
 let ordered = []
 let percentage = currentQ / nQuestions * 100
 let uid = undefined
-// const HOST = ip
 const PORT = '3000'
-// let side
-// if (HOST === '192.168.1.5') side = 'Left'
-// else side = 'Right'
 
-
-// function updateVRstatus() {
-//   const xhr = new XMLHttpRequest()
-//   xhr.onreadystatechange = () => {
-//     console.log(`Checking connection with WD-${side}...`)
-//     if (xhr.readyState === 4) {
-//       console.log('...')
-//       if (xhr.status === 200) {
-//         console.log(`WD-${side} is UP`)
-//         $('#status-text').html('Das VR-Experiment ist bereit')
-//         $('#status-icon').removeClass('yellow-text')
-//         $('#status-icon').addClass('green-text')
-//       } else {
-//         console.log(`WD-${side} is DOWN`)
-//         $('#status-text').html('Das VR-Experiment wird geladen')
-//         $('#status-icon').removeClass('green-text')
-//         $('#status-icon').addClass('yellow-text')
-//       }
-//     }
-//   }
-//   xhr.open('GET', `http://${HOST}:${PORT}/`, /*async*/ true)
-//   xhr.send()
-// }
 
 /**
  * Shuffle the elements of a given array, return the shuffled array.
@@ -54,13 +27,8 @@ function initializeSurvey() {
   currentQ = 0
   answers = []
   ordered = []
-  // unordered = []
   uid = undefined
   for (let i = 0; i < nQuestions; i++) ordered.push(i)
-  // unordered = shuffleArray(ordered.slice())
-  // let ageQind = unordered.indexOf(ageQnum)
-  // unordered.splice(ageQind, 1)
-  // unordered.splice(0, 0, ageQnum)
   for (let i = 0; i < nQuestions; i++) {
     let defaultVal = $(`ans-${i}`).prop('defaultValue')
     $(`ans-${i}`).val(defaultVal)
@@ -111,7 +79,6 @@ function startSurvey() {
   $('#progressbar').parent().css('visibility', '')
   $(`#ques-${ordered[currentQ]}`).fadeToggle('slow')
   $('#logos').css('visibility', 'hidden')
-  // setQuestionTimer()
 }
 
 function getSelected() {
@@ -136,25 +103,11 @@ function getSelected() {
 function nextQuestion() {
   currentQ++
   updateProgressBar()
-  // setQuestionTimer()
 }
-
-// function setQuestionTimer() {
-//   clearTimeout(timer)
-//   timer = setTimeout(() => goToLogin(), 60000)
-// }
 
 function hideQuestions() {
   for (let i = 0; i < nQuestions; i++) $(`#ques-${i}`).css('display', 'none')
 }
-
-// function goToLogin() {
-//   $(`#ques-${ordered[currentQ]}`).fadeToggle('slow').promise().done(() => {
-//     initializeSurvey()
-//     hideQuestions()
-//     startSurvey()
-//   })
-// }
 
 function updateProgressBar() {
   percentage = currentQ / nQuestions * 100
@@ -174,10 +127,6 @@ function inputNum(elem, digit) {
 }
 
 function submitAnswers() {
-  // clearTimeout(timer)
-  // let ans = new Array(ordered.length)
-  // for (let i = 0; i < ordered.length; i++) ans[ordered[i]] = answers[i + 1]
-  // ans.unshift(answers[0])
   let responses = JSON.stringify(answers)
   $.post('/save', {
     answers: responses
@@ -192,8 +141,15 @@ $(document).on('contextmenu', () => {
 })
 
 $(document).ready(() => {
+  for (let i = 0; i < nQuestions; i++) {
+    const found = $(`#input-field-ans-${i}`).children('input[type="checkbox"]')
+    if(found) alert(`Age is in question number ${i}`)
+  }
   initializeSurvey()
   constantClickListeners()
-  // updateVRstatus()
-  // setInterval(() => updateVRstatus(), 10000)
+  $(document).on('keyup', (e) => { // ask Moni if better keydown/keypress/keyup
+    if(e.keyCode == 32) alert('spacebar pressed')
+    // TODO: make it check if question is SPR, space uncover phrase parts one by one
+    // also fix getting age question number (for storing it as integer I guess)
+  })
 })
