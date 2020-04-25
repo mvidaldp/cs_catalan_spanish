@@ -1,98 +1,89 @@
 // IMPORTANT!! -> Change 'click' for 'touchend' to make it work on touchscreens
+const nQuestions = parseInt($('#nquest').text())
 let currentQ
-let timer
-let answers = []
-let ordered = []
+const times = {}
+let answers = {}
 let percentage = currentQ / nQuestions * 100
-let uid = undefined
-const PORT = '3000'
-
 
 /**
  * Shuffle the elements of a given array, return the shuffled array.
  * @param {Array} arr - Given array
  * @return {Array} - Shuffled array
  */
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1))
-    let x = arr[i]
-    arr[i] = arr[j]
-    arr[j] = x
-  }
-  return arr
-}
+// function shuffleArray (arr) { // NOT USED, KEPT for DESCRIPTION
+//   for (let i = arr.length - 1; i > 0; i--) {
+//     let j = Math.floor(Math.random() * (i + 1))
+//     let x = arr[i]
+//     arr[i] = arr[j]
+//     arr[j] = x
+//   }
+//   return arr
+// }
 
-function initializeSurvey() {
+function initializeSurvey () {
   currentQ = 0
-  answers = []
-  ordered = []
-  uid = undefined
-  for (let i = 0; i < nQuestions; i++) ordered.push(i)
-  for (let i = 0; i < nQuestions; i++) {
-    let defaultVal = $(`ans-${i}`).prop('defaultValue')
-    $(`ans-${i}`).val(defaultVal)
-  }
+  answers = {}
+  // NOT WORKING, CHECK
+  // for (let i = 0; i < nQuestions; i++) {
+  //   if ($(`#ans-${i}`).length) {
+  //     let child = 0
+  //     if ($(`#ans-${i}`).children().length > 1) child = 1
+  //     const defaultVal = $(`ans-${i}`).children()[child].prop('defaultValue')
+  //     $(`ans-${i}`).children()[child].value = defaultVal
+  //   }
+  // }
   updateProgressBar()
   $('#progressbar').parent().css('visibility', 'hidden')
   $('#thanks').css('display', 'none')
   setClickEventListeners()
 }
 
-function setClickEventListeners() {
-  $('#license > a').off('click')
-  $('#license > a').on('click', getSelected)
+function setClickEventListeners () {
   for (let i = 0; i < nQuestions; i++) {
-    $(`#slider-next-${i}`).off('click')
-    $(`#slider-next-${i}`).on('click', getSelected)
+    $(`#slider-${i}`).off('click')
+    $(`#slider-${i}`).on('click', getSelected)
     $(`#group-ans-${i} > a`).off('click')
     $(`#group-ans-${i} > a`).on('click', getSelected)
     $(`#ans-${i}-submit`).off('click')
+    let child = 0
+    if ($(`#ans-${i}`).children().length > 1) child = 1
     $(`#ans-${i}-submit`).on('click', () => {
-      if ($(`#ans-${i}`).val() !== '') {
+      if ($(`#ans-${i}`).children()[child].value !== '') {
         $(`#ans-${i}-submit`).off('click')
         getSelected()
       }
     })
-    $(`#ans-${i}`).val('')
-  }
-}
-
-function constantClickListeners() {
-  for (let i = 0; i < 10; i++) $(`#digit-${i}`).on('click', () => inputDigit(i))
-  $('#digit-delete').on('click', () => $('#id').val(''))
-  for (let i = 0; i < nQuestions; i++) {
-    for (let j = 0; j < 10; j++) {
-      let idName = `#ans-${i}-d-${j}`
-      $(idName).on('click', () => inputNum(`#ans-${i}`, j))
-    }
-    $(`#ans-${i}-d-delete`).on('click', () => $(`#ans-${i}`).val(''))
+    if ($(`#ans-${i}`).children()[child]) $(`#ans-${i}`).children()[child].value = ''
   }
   $('#start').on('click', () => {
     startSurvey()
   })
 }
 
-function startSurvey() {
+function startSurvey () {
   $('#instructions').css('display', 'none')
   $('#survey').css('display', '')
   $('#progressbar').parent().css('visibility', '')
-  $(`#ques-${ordered[currentQ]}`).fadeToggle('slow')
+  $(`#ques-${currentQ}`).fadeToggle('slow')
   $('#logos').css('visibility', 'hidden')
 }
 
-function getSelected() {
-  $(`#slider-next-${ordered[currentQ]}`).off('click')
-  $(`#group-ans-${ordered[currentQ]} > a`).off('click')
-  let selected = $(`#ans-${ordered[currentQ]}`).val()
-  if (selected !== undefined) answers.push(selected)
+function getSelected () {
+  let child = 0
+  if ($(`#ans-${currentQ}`).children().length > 1) child = 1
+  $(`#slider-${currentQ}`).off('click')
+  $(`#group-ans-${currentQ} > a`).off('click')
+  let selected = $(`#ans-${currentQ}`).children()[child].value
+  let id = $(`#ans-${currentQ}`).children()[child].id
+  if (selected !== undefined) answers[id] = selected
   else {
-    selected = $(this).html()
-    answers.push(selected)
+    selected = $(this).children()[child].innerHTML
+    id = $(this).children()[child].id
+    answers[id] = selected
   }
-  $(`#ques-${ordered[currentQ]}`).fadeToggle('slow').promise().done(() => {
+  $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
     nextQuestion()
-    $(`#ques-${ordered[currentQ]}`).fadeToggle('slow').promise().done(() => {
+    $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
       if (currentQ === nQuestions) {
         submitAnswers()
       }
@@ -100,37 +91,22 @@ function getSelected() {
   })
 }
 
-function nextQuestion() {
+function nextQuestion () {
   currentQ++
   updateProgressBar()
 }
 
-function hideQuestions() {
-  for (let i = 0; i < nQuestions; i++) $(`#ques-${i}`).css('display', 'none')
-}
-
-function updateProgressBar() {
+function updateProgressBar () {
   percentage = currentQ / nQuestions * 100
   $('#progressbar').css('width', percentage + '%')
 }
 
-function inputDigit(digit) {
-  let content = $('#id').val()
-  if (content.length < 2) $('#id').val(content + digit)
-  else $('#id').val(digit)
-}
-
-function inputNum(elem, digit) {
-  let content = $(elem).val()
-  if (content.length < 2) $(elem).val(content + digit)
-  else $(elem).val(digit)
-}
-
-function submitAnswers() {
-  let responses = JSON.stringify(answers)
+function submitAnswers () {
+  const responses = JSON.stringify(answers)
   $.post('/save', {
     answers: responses
   })
+  // TODO: add/remove class hidden for visibility: hidden; enable/disable
   $('#logos').css('visibility', '')
   $('#progressbar').parent().css('visibility', 'hidden')
   $('#thanks').fadeToggle('slow')
@@ -142,24 +118,36 @@ $(document).on('contextmenu', () => {
 
 let current
 let sprPos
+let initialT
+let date
+let ageN
 $(document).ready(() => {
-  // for (let i = 0; i < nQuestions; i++) {
-  //   const found = $(`#input-field-ans-${i}`).children('input[type="checkbox"]')
-  //   if (found) alert(`Age is in question number ${i}`)
-  // }
+  for (let i = 0; i < nQuestions; i++) {
+    const found = $(`#ans-${i}`).children('input[type="number"]')
+    if (found.length > 0) ageN = i
+  }
   initializeSurvey()
-  constantClickListeners()
   $(document).on('keypress', (e) => { // ask Moni if better keydown/keypress/keyup
-    console.log(e.keyCode)
     if (e.keyCode === 32 && $(`#head-${currentQ}`).children().length > 0) {
       if (current !== currentQ) {
         current = currentQ
         sprPos = 0
+        date = new Date()
+        initialT = date.getTime()
       }
-      else sprPos++
+      else {
+        // console.log($(`#spr${currentQ}_${sprPos}`))
+        if ($(`#spr${currentQ}_${sprPos}`).length) {
+          date = new Date()
+          const elapsedT = date.getTime() - initialT
+          initialT = date.getTime()
+          alert(elapsedT)
+          times[`spr${currentQ}_${sprPos}`] = elapsedT
+          sprPos++
+        }
+      }
       $(`#spr${currentQ}_${sprPos}`).removeClass('hidden')
     }
-    // TODO: make it check if question is SPR, space uncover phrase parts one by one
-    // also fix getting age question number (for storing it as integer I guess)
+    // TODO: also fix getting age question number (for storing it as integer I guess)
   })
 })

@@ -2,10 +2,9 @@
 // requires
 const express = require('express')
 const bodyParser = require('body-parser')
-const https = require('https')
+// const https = require('https')
 const fs = require('fs')
 const sqlite3 = require('sqlite3').verbose()
-const async = require('async')
 const { google } = require('googleapis')
 const gd = require('./gd-api.json')
 const { GoogleSpreadsheet } = require('google-spreadsheet') // GoogleSpreadsheet
@@ -27,23 +26,18 @@ let insertT = `INSERT INTO answers (
 let insertAend = 'VALUES (datetime("now", "localtime"),'
 let insertTend = 'VALUES (datetime("now", "localtime"),'
 
-let inHTML = []
-let experiment = []
+const inHTML = []
+const experiment = []
 
-// FUNCTIONS
-function errorHandler(error) {
-  if (error) throw error
-  else return false
-}
-
-let sNames = {
+const sNames = {
   cond1: '',
   cond2: '',
   cond3: '',
   survey: ''
 }
-async function getSpreadSheet() {
 
+// FUNCTIONS
+async function getSpreadSheet () {
   const drive = google.drive({
     version: 'v3',
     auth: gd.key
@@ -54,9 +48,9 @@ async function getSpreadSheet() {
 
   let timestamp
   try {
-    if (fs.existsSync('./experiment.lastupdate'))
+    if (fs.existsSync('./experiment.lastupdate')) {
       timestamp = fs.readFileSync('./experiment.lastupdate', 'utf8')
-    else {
+    } else {
       fs.createWriteStream('experiment.lastupdate')
       timestamp = undefined
     }
@@ -90,7 +84,7 @@ async function getSpreadSheet() {
           // if cell is not undefined take cell value without line breaks
           if (cell) {
             cell = cell.replace(/(\r\n|\n|\r)/gm, '')
-            to_write += cell
+            toWrite += cell
             if (idx < headers.length - 1) toWrite += '\t'
           }
         }
@@ -104,14 +98,14 @@ async function getSpreadSheet() {
   } else readFiles()
 }
 
-function parseSurvey(data) {
-  let survey = []
+function parseSurvey (data) {
+  const survey = []
   const rows = data.split(/\r\n|\n/) // split by line
   // for all rows read from "questions"
   for (const r of rows) {
     let ans, step, sliders
-    row = r.split('\t')
-    let type = row[2].trim()
+    const row = r.split('\t')
+    const type = row[2].trim()
     if (row[3].includes('-') && !row[3].includes('/')) ans = row[3].split('-')
     else if (row[3] && row[3].includes('/')) ans = row[3].split('/')
     if (row[4]) step = parseInt(row[4].trim())
@@ -129,42 +123,42 @@ function parseSurvey(data) {
   return survey
 }
 
-function parseCondition(data) {
-  let condition = []
+function parseCondition (data) {
+  const condition = []
   const rows = data.split(/\r\n|\n/) // split by line
   // for all rows read from "condition"
   for (const r of rows) {
-    row = r.split('\t')
+    const row = r.split('\t')
     condition.push({
       id: row[0].trim(),
       question: row[1].trim(),
-      type: row[2].trim(),
+      type: row[2].trim()
     })
   }
   return condition
 }
 let nSpr
-function readFiles() {
+function readFiles () {
   const quest = fs.readFileSync('./questionnaire.tsv', 'utf8')
   const questions = parseSurvey(quest)
   for (let i = 1; i < 4; i++) {
     const cond = fs.readFileSync(`./condition${i}.tsv`, 'utf8')
-    let condition = parseCondition(cond)
+    const condition = parseCondition(cond)
     nSpr = condition.length
     experiment.push(condition.concat(questions))
   }
   generateContent()
 }
 let maxSpr = 0
-function generateContent() {
-  for (e in experiment) {
+function generateContent () {
+  for (const e in experiment) {
     inHTML[e] = ''
     for (let i = 0; i < experiment[e].length; i++) {
       let question = experiment[e][i].question
       if (experiment[e][i].type === 'o' && question !== 'Ciutat/estat') {
-        let spr = question.replace(/[\,\.\?]/g, (x) => { return `${x}#` })
+        let spr = question.replace(/[,.?]/g, (x) => { return `${x}#` })
         spr = spr.split('#')
-        spr.pop()  // better include a whitespace after the characters on replace
+        spr.pop() // better include a whitespace after the characters on replace
         if (spr.length > maxSpr) maxSpr = spr.length
         question = ''
         for (const [idx, part] of spr.entries()) {
@@ -178,19 +172,22 @@ function generateContent() {
       if (experiment[e][i].type === 'a') {
         inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
                         <div id="input-field-ans-${i}" class="input-field col s12">
-                          <i class="material-icons prefix">mode_edit</i>
-                          <input type="number" id="ans-${i}" class="materialize-textarea" min="1" max="100">
+                          <div id="ans-${i}">
+                            <i class="material-icons prefix">mode_edit</i>
+                            <input type="number" id="${experiment[e][i].id}" class="materialize-textarea" min="1" max="100">
+                          </div>
                           <button id="ans-${i}-submit" class="btn-large lighten-3">
                             <i class="material-icons">send</i>
                           </button>
                         </div>
                       </div>`
-      }
-      else if (experiment[e][i].type === 'o') {
+      } else if (experiment[e][i].type === 'o') {
         inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
                         <div id="input-field-ans-${i}" class="input-field col s12">
-                          <i class="material-icons prefix">mode_edit</i>
-                          <textarea id="ans-${i}" class="materialize-textarea" data-length="500"></textarea>
+                          <div id="ans-${i}">
+                            <i class="material-icons prefix">mode_edit</i>
+                            <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="500"></textarea>
+                          </div>
                           <button id="ans-${i}-submit" class="btn-large lighten-3">
                             <i class="material-icons">send</i>
                           </button>
@@ -208,9 +205,11 @@ function generateContent() {
                           <form class="col s10" action="#">
                           <div class="valign-wrapper">
                             <p class="range-field col s12">
-                              <input step="${experiment[e][i].step}" autocomplete="off" id="ans-${i}"
-                              type="range" min="${min}" max="${max}"
-                              value="${parseInt(max / 2)}" />
+                              <div id="ans-${i}">
+                                <input id="${experiment[e][i].id}" step="${experiment[e][i].step}" autocomplete="off"
+                                type="range" min="${min}" max="${max}"
+                                value="${parseInt(max / 2)}" />
+                              </div>
                             </p>
                           </div>
                           </form>
@@ -219,13 +218,15 @@ function generateContent() {
                           </div>
                         </div>
                         <div class="valign-wrapper">
-                          <button id="slider-next-${i}" class="btn-large lighten-3" style="margin: auto;">
+                          <button id="slider-${i}" class="btn-large lighten-3" style="margin: auto;">
                             <i class="large material-icons">send</i>
                           </button>
                         </div>`
         } else { // experiment[e][i].type === 'c'
           for (const ans of experiment[e][i].answers) {
-            inHTML[e] += `<a class="btn-large lighten-3">${ans}</a>`
+            inHTML[e] += `<div id="ans-${i}">
+                            <a id="${experiment[e][i].id}" class="btn-large lighten-3">${ans}</a>
+                          </div>`
           }
         }
         inHTML[e] += '</div>'
@@ -237,7 +238,7 @@ function generateContent() {
   createTables()
 }
 
-function createTables() {
+function createTables () {
   let createT = `CREATE TABLE IF NOT EXISTS times (
                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                    date TEXT,
@@ -246,7 +247,7 @@ function createTables() {
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  date TEXT,
                  condition INTEGER,`
-  
+
   // prepare create and insert answers and time queries
   for (let i = 0; i < experiment[0].length; i++) {
     let type
@@ -254,11 +255,11 @@ function createTables() {
       case 'a':
       case 's':
         type = 'INTEGER'
-        break;
+        break
       case 'c':
       case 'o':
         type = 'TEXT'
-        break;
+        break
       default:
       // code block
     }
@@ -282,12 +283,12 @@ function createTables() {
   insertT = `${insertT.substring(0, insertT.length - 2)});`
   console.log(createA)
   console.log(createT)
+  // create answers and times tables (if none)
   db.run(createA)
-  // create times table (if none)
   db.run(createT)
 }
 
-function serverRouting() {
+function serverRouting () {
   app.get('/', (req, res) => {
     const nConditions = experiment.length
     // pick a condition randomly
@@ -303,7 +304,7 @@ function serverRouting() {
 
   app.post('/save', (req, res) => {
     let answers = req.body.answers
-    let times = req.body.answers
+    const times = req.body.answers
     // TODO: look for a cleaner/nicer way to get this vars
     console.log('\nExperiment completed:')
     console.log(`Answers => ${answers}`)
@@ -312,7 +313,6 @@ function serverRouting() {
     answers = answers.replace(']', '')
     answers = answers.replace(/"/g, '')
     answers = answers.split(',')
-    responses = [answers]
     db.serialize(() => {
       db.run(insertA, answers)
       db.run(insertT, times)
