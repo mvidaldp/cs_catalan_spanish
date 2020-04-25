@@ -140,15 +140,25 @@ $(document).on('contextmenu', () => {
   return false // disable context menu
 })
 
+let current
+let sprPos
 $(document).ready(() => {
-  for (let i = 0; i < nQuestions; i++) {
-    const found = $(`#input-field-ans-${i}`).children('input[type="checkbox"]')
-    if(found) alert(`Age is in question number ${i}`)
-  }
+  // for (let i = 0; i < nQuestions; i++) {
+  //   const found = $(`#input-field-ans-${i}`).children('input[type="checkbox"]')
+  //   if (found) alert(`Age is in question number ${i}`)
+  // }
   initializeSurvey()
   constantClickListeners()
-  $(document).on('keyup', (e) => { // ask Moni if better keydown/keypress/keyup
-    if(e.keyCode == 32) alert('spacebar pressed')
+  $(document).on('keypress', (e) => { // ask Moni if better keydown/keypress/keyup
+    console.log(e.keyCode)
+    if (e.keyCode === 32 && $(`#head-${currentQ}`).children().length > 0) {
+      if (current !== currentQ) {
+        current = currentQ
+        sprPos = 0
+      }
+      else sprPos++
+      $(`#spr${currentQ}_${sprPos}`).removeClass('hidden')
+    }
     // TODO: make it check if question is SPR, space uncover phrase parts one by one
     // also fix getting age question number (for storing it as integer I guess)
   })

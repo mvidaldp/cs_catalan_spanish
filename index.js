@@ -23,8 +23,9 @@ let insertA = `INSERT INTO answers (
 let insertT = `INSERT INTO answers (
                   \`condition\`,
                   \`date\`,`
-let insertAend = 'VALUES (?, datetime("now", "localtime"),'
-let insertTend = 'VALUES (?, datetime("now", "localtime"),'
+// if err try to add ? before datetime for autoincrement (id)
+let insertAend = 'VALUES (datetime("now", "localtime"),'
+let insertTend = 'VALUES (datetime("now", "localtime"),'
 
 let inHTML = []
 let experiment = []
@@ -287,14 +288,18 @@ function createTables() {
 }
 
 function serverRouting() {
-  // pick a condition randomly
-  const condition = Math.floor(Math.random() * 3) + 1
-  console.log(`Condition: ${condition}`)
-  app.get('/', (req, res) => res.render('index', {
-    content: inHTML[condition],
-    nQuestions: experiment.length,
-    condition: condition
-  }))
+  app.get('/', (req, res) => {
+    const nConditions = experiment.length
+    // pick a condition randomly
+    const condition = Math.floor(Math.random() * nConditions)
+    const nQuestions = experiment[condition].length
+    console.log(`Condition: ${condition + 1}`)
+    res.render('index', {
+      content: inHTML[condition],
+      nQuestions: nQuestions,
+      condition: condition + 1
+    })
+  })
 
   app.post('/save', (req, res) => {
     let answers = req.body.answers
