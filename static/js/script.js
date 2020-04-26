@@ -1,8 +1,7 @@
 // IMPORTANT!! -> Change 'click' for 'touchend' to make it work on touchscreens
-const nQuestions = parseInt($('#nquest').text())
-let currentQ
-const times = {}
-let answers = {}
+const nQuestions = Number($('#nquest').text())
+const condition = Number($('#condition').text())
+let currentQ, answers, times
 let percentage = currentQ / nQuestions * 100
 
 /**
@@ -23,6 +22,9 @@ let percentage = currentQ / nQuestions * 100
 function initializeSurvey () {
   currentQ = 0
   answers = {}
+  times = {}
+  answers.condition = condition
+  times.condition = condition
   // NOT WORKING, CHECK
   // for (let i = 0; i < nQuestions; i++) {
   //   if ($(`#ans-${i}`).length) {
@@ -42,8 +44,8 @@ function setClickEventListeners () {
   for (let i = 0; i < nQuestions; i++) {
     $(`#slider-${i}`).off('click')
     $(`#slider-${i}`).on('click', getSelected)
-    $(`#group-ans-${i} > a`).off('click')
-    $(`#group-ans-${i} > a`).on('click', getSelected)
+    $(`#group-ans-${i} > span > a`).off('click')
+    $(`#group-ans-${i} > span > a`).on('click', getSelected)
     $(`#ans-${i}-submit`).off('click')
     let child = 0
     if ($(`#ans-${i}`).children().length > 1) child = 1
@@ -70,23 +72,35 @@ function startSurvey () {
 
 function getSelected () {
   let child = 0
-  if ($(`#ans-${currentQ}`).children().length > 1) child = 1
+  if ($(`#ans-${currentQ}`).children().length > 1) {
+    if ($(`#ans-${currentQ}`).children()[1].id) child = 1
+    else child = 0
+  }
   $(`#slider-${currentQ}`).off('click')
-  $(`#group-ans-${currentQ} > a`).off('click')
-  let selected = $(`#ans-${currentQ}`).children()[child].value
-  let id = $(`#ans-${currentQ}`).children()[child].id
-  if (selected !== undefined) answers[id] = selected
-  else {
-    selected = $(this).children()[child].innerHTML
-    id = $(this).children()[child].id
+  $(`#group-ans-${currentQ} > span > a`).off('click')
+  let selected, id
+  if ($(`#ans-${currentQ}`).children()[child]) {
+    selected = $(`#ans-${currentQ}`).children()[child].value
+    id = $(`#ans-${currentQ}`).children()[child].id
+    if (id.substring(0, 3) === 'spr') {
+      date = new Date()
+      const elapsedT = date.getTime() - initialT
+      times[`spr${currentQ}_ans`] = elapsedT
+    }
+  }
+  if (selected !== undefined) {
+    if (!isNaN(selected)) selected = Number(selected)
+    answers[id] = selected
+  } else {
+    selected = $(this).text()
+    id = $(this).parent()[0].id
+    if (!isNaN(selected)) selected = Number(selected)
     answers[id] = selected
   }
   $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
     nextQuestion()
     $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
-      if (currentQ === nQuestions) {
-        submitAnswers()
-      }
+      if (currentQ === nQuestions) submitAnswers()
     })
   })
 }
@@ -103,8 +117,10 @@ function updateProgressBar () {
 
 function submitAnswers () {
   const responses = JSON.stringify(answers)
+  const timings = JSON.stringify(times)
   $.post('/save', {
-    answers: responses
+    answers: responses,
+    times: timings
   })
   // TODO: add/remove class hidden for visibility: hidden; enable/disable
   $('#logos').css('visibility', '')
@@ -120,12 +136,8 @@ let current
 let sprPos
 let initialT
 let date
-let ageN
+
 $(document).ready(() => {
-  for (let i = 0; i < nQuestions; i++) {
-    const found = $(`#ans-${i}`).children('input[type="number"]')
-    if (found.length > 0) ageN = i
-  }
   initializeSurvey()
   $(document).on('keypress', (e) => { // ask Moni if better keydown/keypress/keyup
     if (e.keyCode === 32 && $(`#head-${currentQ}`).children().length > 0) {
@@ -134,20 +146,23 @@ $(document).ready(() => {
         sprPos = 0
         date = new Date()
         initialT = date.getTime()
-      }
-      else {
+      } else {
         // console.log($(`#spr${currentQ}_${sprPos}`))
-        if ($(`#spr${currentQ}_${sprPos}`).length) {
+        if ($(`#spr${currentQ}_${sprPos + 1}`).length) {
           date = new Date()
           const elapsedT = date.getTime() - initialT
           initialT = date.getTime()
-          alert(elapsedT)
+          // alert(elapsedT)
           times[`spr${currentQ}_${sprPos}`] = elapsedT
           sprPos++
+        } else {
+          $(`#ans-input-${currentQ}`).removeClass('hidden')
+          $(`#ans-${currentQ}`).children()[1].focus()
+          date = new Date()
+          initialT = date.getTime()
         }
       }
       $(`#spr${currentQ}_${sprPos}`).removeClass('hidden')
     }
-    // TODO: also fix getting age question number (for storing it as integer I guess)
   })
 })

@@ -16,15 +16,14 @@ const db = new sqlite3.Database('sqlite.db') // create and/or open the db
 // express webserver
 const app = express()
 const port = 3000
+
 let insertA = `INSERT INTO answers (
-                  \`condition\`,
                   \`date\`,`
-let insertT = `INSERT INTO answers (
-                  \`condition\`,
+let insertT = `INSERT INTO times (
                   \`date\`,`
 // if err try to add ? before datetime for autoincrement (id)
-let insertAend = 'VALUES (datetime("now", "localtime"),'
-let insertTend = 'VALUES (datetime("now", "localtime"),'
+let insertAend = 'VALUES (datetime("now", "localtime"), '
+let insertTend = 'VALUES (datetime("now", "localtime"), '
 
 const inHTML = []
 const experiment = []
@@ -165,6 +164,7 @@ function generateContent () {
           question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
         }
       }
+      // change style="display: none;" for class="hide"?
       inHTML[e] += `<div id="ques-${i}" class="col s12 content-height" style="display: none;">
                       <h6 id="head-${i}" class="header col s12 q-height">
                         ${question}
@@ -172,22 +172,24 @@ function generateContent () {
       if (experiment[e][i].type === 'a') {
         inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
                         <div id="input-field-ans-${i}" class="input-field col s12">
-                          <div id="ans-${i}">
+                          <span id="ans-${i}">
                             <i class="material-icons prefix">mode_edit</i>
-                            <input type="number" id="${experiment[e][i].id}" class="materialize-textarea" min="1" max="100">
-                          </div>
+                            <input type="number" id="${experiment[e][i].id}" min="1" max="100">
+                          </span>
                           <button id="ans-${i}-submit" class="btn-large lighten-3">
                             <i class="material-icons">send</i>
                           </button>
                         </div>
                       </div>`
       } else if (experiment[e][i].type === 'o') {
-        inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
+        let extraC = ' hidden'
+        if (experiment[e][i].id === 'city') extraC = ''
+        inHTML[e] += `<div id="ans-input-${i}" class="row center-align${extraC}" style="margin-bottom: 0;">
                         <div id="input-field-ans-${i}" class="input-field col s12">
-                          <div id="ans-${i}">
+                          <span id="ans-${i}">
                             <i class="material-icons prefix">mode_edit</i>
                             <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="500"></textarea>
-                          </div>
+                          </span>
                           <button id="ans-${i}-submit" class="btn-large lighten-3">
                             <i class="material-icons">send</i>
                           </button>
@@ -203,15 +205,14 @@ function generateContent () {
                             <a class="btn-floating">${min}</a>
                           </div>
                           <form class="col s10" action="#">
-                          <div class="valign-wrapper">
-                            <p class="range-field col s12">
-                              <div id="ans-${i}">
-                                <input id="${experiment[e][i].id}" step="${experiment[e][i].step}" autocomplete="off"
-                                type="range" min="${min}" max="${max}"
-                                value="${parseInt(max / 2)}" />
-                              </div>
-                            </p>
-                          </div>
+                            <div class="valign-wrapper">
+                              <p class="range-field col s12">
+                                <span id="ans-${i}">
+                                  <input id="${experiment[e][i].id}" step="${experiment[e][i].step}" autocomplete="off"
+                                  type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
+                                </span>
+                              </p>
+                            </div>
                           </form>
                           <div class="col s1 valign-wrapper flex-row-reverse">
                             <a class="btn-floating">${max}</a>
@@ -223,27 +224,27 @@ function generateContent () {
                           </button>
                         </div>`
         } else { // experiment[e][i].type === 'c'
+          inHTML[e] += `<span id="${experiment[e][i].id}">`
           for (const ans of experiment[e][i].answers) {
-            inHTML[e] += `<div id="ans-${i}">
-                            <a id="${experiment[e][i].id}" class="btn-large lighten-3">${ans}</a>
-                          </div>`
+            inHTML[e] += `<a class="btn-large lighten-3">${ans}</a>`
           }
+          inHTML[e] += '</span>'
         }
         inHTML[e] += '</div>'
       }
       inHTML[e] += '</div>'
     }
-    inHTML[e] += '</div></div>'
   }
   createTables()
 }
 
 function createTables () {
-  let createT = `CREATE TABLE IF NOT EXISTS times (
-                   id INTEGER PRIMARY KEY AUTOINCREMENT,
-                   date TEXT,
-                   condition INTEGER,`
+
   let createA = `CREATE TABLE IF NOT EXISTS answers (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 date TEXT,
+                 condition INTEGER,`
+  let createT = `CREATE TABLE IF NOT EXISTS times (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  date TEXT,
                  condition INTEGER,`
@@ -264,25 +265,15 @@ function createTables () {
       // code block
     }
     createA += `\n${experiment[0][i].id} ${type},`
-    insertA += `\n${experiment[0][i].id},`
-    insertAend += '?, '
   }
   for (let i = 0; i < nSpr; i++) {
-    for (let j = 0; j < maxSpr; j++) {
-      createT += `\nspr${i}_${j} REAL,`
-      insertT += `\nspr${i}_${j},`
-      insertTend += '?, '
-    }
+    for (let j = 0; j < maxSpr; j++) createT += `\nspr${i}_${j} REAL,`
+    createT += `\nspr${i}_ans REAL,`
   }
 
   createA = `${createA.substring(0, createA.length - 1)});`
-  insertA = `${insertA.substring(0, insertA.length - 1)})\n${insertAend}`
-  insertA = `${insertA.substring(0, insertA.length - 2)});`
   createT = `${createT.substring(0, createT.length - 1)});`
-  insertT = `${insertT.substring(0, insertT.length - 1)})\n${insertTend}`
-  insertT = `${insertT.substring(0, insertT.length - 2)});`
-  console.log(createA)
-  console.log(createT)
+
   // create answers and times tables (if none)
   db.run(createA)
   db.run(createT)
@@ -302,22 +293,37 @@ function serverRouting () {
     })
   })
 
-  app.post('/save', (req, res) => {
-    let answers = req.body.answers
-    const times = req.body.answers
+  app.post('/save', (req) => {
+    const answers = JSON.parse(req.body.answers)
+    const times = JSON.parse(req.body.times)
     // TODO: look for a cleaner/nicer way to get this vars
     console.log('\nExperiment completed:')
-    console.log(`Answers => ${answers}`)
-    console.log(`Times => ${times}`)
-    answers = answers.replace('[', '')
-    answers = answers.replace(']', '')
-    answers = answers.replace(/"/g, '')
-    answers = answers.split(',')
+    console.log(answers)
+    console.log(times)
+
+    const aKeys = Object.keys(answers)
+    const aValues = Object.values(answers)
+    const tKeys = Object.keys(times)
+    const tValues = Object.values(times)
+
+    for (const k of aKeys) {
+      insertA += `\n${k},`
+      insertAend += '?, '
+    }
+    for (const k of tKeys) {
+      insertT += `\n${k},`
+      insertTend += '?, '
+    }
+
+    insertA = `${insertA.substring(0, insertA.length - 1)})\n${insertAend}`
+    insertA = `${insertA.substring(0, insertA.length - 2)});`
+    insertT = `${insertT.substring(0, insertT.length - 1)})\n${insertTend}`
+    insertT = `${insertT.substring(0, insertT.length - 2)});`
+
     db.serialize(() => {
-      db.run(insertA, answers)
-      db.run(insertT, times)
+      db.run(insertA, aValues)
+      db.run(insertT, tValues)
     })
-    res.redirect('/')
   })
 }
 
