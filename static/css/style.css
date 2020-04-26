@@ -23,11 +23,7 @@ html {
   font-weight: 400;
   src: url(/static/fonts/MaterialIcons-Regular.eot);
   /* For IE6-8 */
-  src: local('Material Icons'),
-    local('MaterialIcons-Regular'),
-    url(/static/fonts/MaterialIcons-Regular.woff2) format('woff2'),
-    url(/static/fonts/MaterialIcons-Regular.woff) format('woff'),
-    url(/static/fonts/MaterialIcons-Regular.ttf) format('truetype');
+  src: local('Material Icons'), local('MaterialIcons-Regular'), url(/static/fonts/MaterialIcons-Regular.woff2) format('woff2'), url(/static/fonts/MaterialIcons-Regular.woff) format('woff'), url(/static/fonts/MaterialIcons-Regular.ttf) format('truetype');
 }
 
 .material-icons {
@@ -141,4 +137,10 @@ input[type=text]:not(.browser-default) {
 
 .hidden {
   visibility: hidden;
+}
+
+#pbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
