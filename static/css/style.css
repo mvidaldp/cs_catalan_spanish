@@ -17,6 +17,10 @@ html {
                                 supported by Chrome and Opera */
 }
 
+textarea.materialize-textarea {
+  font-size: x-large;
+}
+
 @font-face {
   font-family: 'Material Icons';
   font-style: normal;
@@ -63,22 +67,9 @@ img {
   visibility: hidden;
 }
 
-#vr-status {
-  position: absolute;
-  top: 0;
-  right: 30px;
-  padding-top: 30px;
-}
-
 .btn-large {
   margin: 20px;
   width: 175px;
-}
-
-.numpad {
-  height: 60px;
-  width: 60px;
-  font-size: 20px;
 }
 
 input[type=text]:not(.browser-default) {
@@ -128,11 +119,6 @@ input[type=text]:not(.browser-default) {
 
 .flex-row-reverse {
   flex-direction: row-reverse;
-}
-
-.age-row {
-  float: none;
-  margin: 0 auto;
 }
 
 .hidden {

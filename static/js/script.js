@@ -36,7 +36,6 @@ function initializeSurvey () {
   // }
   updateProgressBar()
   $('#progressbar').parent().css('visibility', 'hidden')
-  $('#thanks').css('display', 'none')
   setClickEventListeners()
 }
 
@@ -87,6 +86,7 @@ function getSelected () {
       const elapsedT = date.getTime() - initialT
       times[`spr${currentQ}_ans`] = elapsedT
     }
+    $(`#ans-${currentQ} > textarea`)[0].focus()
   }
   if (selected !== undefined) {
     if (!isNaN(selected)) selected = Number(selected)
@@ -99,6 +99,10 @@ function getSelected () {
   }
   $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
     nextQuestion()
+    // if (id === 'age' || id === 'city') {
+    //   console.log(id)
+    //   $(`#ans-${currentQ} > textarea`).focus()
+    // }
     $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
       if (currentQ === nQuestions) submitAnswers()
     })
@@ -125,7 +129,7 @@ function submitAnswers () {
   // TODO: add/remove class hidden for visibility: hidden; enable/disable
   $('#logos').css('visibility', '')
   $('#progressbar').parent().css('visibility', 'hidden')
-  $('#thanks').fadeToggle('slow')
+  $('#thanks').removeClass('hide')
 }
 
 $(document).on('contextmenu', () => {
@@ -138,8 +142,9 @@ let initialT
 let date
 
 $(document).ready(() => {
+  $('textarea').characterCounter()
   initializeSurvey()
-  $(document).on('keypress', (e) => { // ask Moni if better keydown/keypress/keyup
+  $(document).on('keypress', (e) => {
     if (e.keyCode === 32 && $(`#head-${currentQ}`).children().length > 0) {
       if (current !== currentQ) {
         current = currentQ
@@ -157,7 +162,7 @@ $(document).ready(() => {
           sprPos++
         } else {
           $(`#ans-input-${currentQ}`).removeClass('hidden')
-          $(`#ans-${currentQ}`).children()[1].focus()
+          $(`#ans-${currentQ} > textarea`)[0].focus()
           date = new Date()
           initialT = date.getTime()
         }

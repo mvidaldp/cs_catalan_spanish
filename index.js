@@ -171,10 +171,10 @@ function generateContent () {
                       </h6>`
       if (experiment[e][i].type === 'a') {
         inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
-                        <div id="input-field-ans-${i}" class="input-field col s12">
+                        <div id="input-field-ans-${i}" class="input-field col s2 offset-s5">
                           <span id="ans-${i}">
                             <i class="material-icons prefix">mode_edit</i>
-                            <input type="number" id="${experiment[e][i].id}" min="1" max="100">
+                            <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="2"></textarea>
                           </span>
                           <button id="ans-${i}-submit" class="btn-large lighten-3">
                             <i class="material-icons">send</i>
@@ -182,10 +182,14 @@ function generateContent () {
                         </div>
                       </div>`
       } else if (experiment[e][i].type === 'o') {
-        let extraC = ' hidden'
-        if (experiment[e][i].id === 'city') extraC = ''
-        inHTML[e] += `<div id="ans-input-${i}" class="row center-align${extraC}" style="margin-bottom: 0;">
-                        <div id="input-field-ans-${i}" class="input-field col s12">
+        let hideC = ' hidden'
+        let gridC = 's12'
+        if (experiment[e][i].id === 'city') {
+          hideC = ''
+          gridC = 's4 offset-s4'
+        }
+        inHTML[e] += `<div id="ans-input-${i}" class="row center-align${hideC}" style="margin-bottom: 0;">
+                        <div id="input-field-ans-${i}" class="input-field col ${gridC}">
                           <span id="ans-${i}">
                             <i class="material-icons prefix">mode_edit</i>
                             <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="500"></textarea>
@@ -239,7 +243,6 @@ function generateContent () {
 }
 
 function createTables () {
-
   let createA = `CREATE TABLE IF NOT EXISTS answers (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  date TEXT,
@@ -268,7 +271,7 @@ function createTables () {
   }
   for (let i = 0; i < nSpr; i++) {
     for (let j = 0; j < maxSpr; j++) createT += `\nspr${i}_${j} REAL,`
-    createT += `\nspr${i}_ans REAL,`
+    createT += `\nspr${i}_ans INTEGER,`
   }
 
   createA = `${createA.substring(0, createA.length - 1)});`
