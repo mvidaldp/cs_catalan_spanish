@@ -28,12 +28,7 @@ let insertTend = 'VALUES (datetime("now", "localtime"), '
 const inHTML = []
 const experiment = []
 
-const sNames = {
-  cond1: '',
-  cond2: '',
-  cond3: '',
-  survey: ''
-}
+const languages = ['Català', 'Castellà', 'Altres']
 
 // FUNCTIONS
 async function getSpreadSheet () {
@@ -74,8 +69,6 @@ async function getSpreadSheet () {
       const rows = await sheet.getRows()
       await sheet.loadHeaderRow()
       const headers = sheet.headerValues
-      const k = Object.keys(sNames)[i]
-      sNames[k] = sName
       let toWrite = ''
       for (const [ix, row] of rows.entries()) {
         for (const [idx, h] of headers.entries()) {
@@ -164,82 +157,92 @@ function generateContent () {
           question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
         }
       }
+      let hideC = ' hidden'
+      let gridC = 's12'
+      let hideB = ''
+      const id = experiment[e][i].id
+      const type = experiment[e][i].type
       // change style="display: none;" for class="hide"?
       inHTML[e] += `<div id="ques-${i}" class="col s12 content-height" style="display: none;">
-                      <h6 id="head-${i}" class="header col s12 q-height">
+                      <h6 id="head-${i}" class="header col s12">
                         ${question}
                       </h6>`
-      if (experiment[e][i].type === 'a') {
-        inHTML[e] += `<div id="ans-input-${i}" class="row center-align" style="margin-bottom: 0;">
-                        <div id="input-field-ans-${i}" class="input-field col s2 offset-s5">
-                          <span id="ans-${i}">
+      const extraD = `<div id="group-ans-${i}" class="col s12">
+                        <span id=${id}>`
+      switch (type) {
+        case 'a':
+          inHTML[e] += `<div id="ans-${i}"class="row center-align">
+                          <div class="input-field col s2 offset-s5">
                             <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="2"></textarea>
-                          </span>
-                          <button id="ans-${i}-submit" class="btn-large lighten-3">
-                            <i class="material-icons">send</i>
-                          </button>
-                        </div>
-                      </div>`
-      } else if (experiment[e][i].type === 'o') {
-        let hideC = ' hidden'
-        let gridC = 's12'
-        if (experiment[e][i].id === 'city') {
-          hideC = ''
-          gridC = 's4 offset-s4'
-        }
-        inHTML[e] += `<div id="ans-input-${i}" class="row center-align${hideC}" style="margin-bottom: 0;">
-                        <div id="input-field-ans-${i}" class="input-field col ${gridC}">
-                          <span id="ans-${i}">
-                            <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${experiment[e][i].id}" class="materialize-textarea" data-length="500"></textarea>
-                          </span>
-                          <button id="ans-${i}-submit" class="btn-large lighten-3">
-                            <i class="material-icons">send</i>
-                          </button>
-                        </div>
-                      </div>`
-      } else {
-        inHTML[e] += `<div id="group-ans-${i}" class="col s12 a-height">`
-        if (experiment[e][i].type === 's') {
-          const min = experiment[e][i].answers[0]
-          const max = experiment[e][i].answers[1]
-          inHTML[e] += `<div class="valign-wrapper">
-                          <div class="col s1 valign-wrapper">
-                            <a class="btn-floating">${min}</a>
+                            <textarea id="${id}" class="materialize-textarea" data-length="2"></textarea>
                           </div>
-                          <form class="col s10" action="#">
-                            <div class="valign-wrapper">
-                              <p class="range-field col s12">
-                                <span id="ans-${i}">
-                                  <input id="${experiment[e][i].id}" step="${experiment[e][i].step}" autocomplete="off"
-                                  type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
-                                </span>
-                              </p>
-                            </div>
-                          </form>
-                          <div class="col s1 valign-wrapper flex-row-reverse">
-                            <a class="btn-floating">${max}</a>
-                          </div>
-                        </div>
-                        <div class="valign-wrapper">
-                          <button id="slider-${i}" class="btn-large lighten-3" style="margin: auto;">
-                            <i class="large material-icons">send</i>
-                          </button>
                         </div>`
-        } else { // experiment[e][i].type === 'c'
-          inHTML[e] += `<span id="${experiment[e][i].id}">`
-          for (const ans of experiment[e][i].answers) {
-            inHTML[e] += `<a class="btn-large lighten-3">${ans}</a>`
+          break
+        case 'c':
+          inHTML[e] += extraD
+          for (const ans of experiment[e][i].answers) inHTML[e] += `<a class="btn-large lighten-3">${ans}</a>`
+          inHTML[e] += `</span>
+                      </div>`
+          break
+        case 'o':
+          hideB = ' hidden'
+          if (experiment[e][i].id === 'city') {
+            hideC = ''
+            gridC = 's4 offset-s4'
+            hideB = ''
           }
-          inHTML[e] += '</span>'
-        }
-        inHTML[e] += '</div>'
+          inHTML[e] += `<div id="ans-${i}" class="row center-align${hideC}">
+                          <div class="input-field col ${gridC}">
+                            <i class="material-icons prefix">mode_edit</i>
+                            <textarea id="${id}" class="materialize-textarea" data-length="500"></textarea>
+                          </div>
+                        </div>`
+          break
+        case 's':
+          inHTML[e] += extraD
+          for (let s = 0; s < experiment[e][i].sliders; s++) {
+            const min = experiment[e][i].answers[0]
+            const max = experiment[e][i].answers[1]
+            inHTML[e] += `<div class="valign-wrapper">
+                            <div class="col s12">
+                              <span>${languages[s]}</span>
+                            </div>
+                          </div>
+                          <div class="valign-wrapper">
+                            <div class="col s1 valign-wrapper">
+                              <a class="btn-floating">${min}</a>
+                            </div>
+                            <form class="col s10" action="#">
+                              <div class="valign-wrapper">
+                                <p class="range-field col s12">
+                                  <input id="${id}_${s}" step="${experiment[e][i].step}" autocomplete="off"
+                                  type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
+                                </p>
+                              </div>
+                            </form>
+                            <div class="col s1 valign-wrapper flex-row-reverse">
+                              <a class="btn-floating">${max}</a>
+                            </div>
+                          </div>`
+          }
+          inHTML[e] += `</span>
+                      </div>`
+          break
+        default:
+        // recommended block
+      }
+      if (type !== 'c') {
+        inHTML[e] += `<div class="col s12">
+                        <input type="hidden" id="hidden-${i}" value="${id}">
+                        <button id="submit-${i}" class="btn-large lighten-3 center${hideB}">
+                          <i class="large material-icons">send</i>
+                        </button>
+                      </div>`
       }
       inHTML[e] += '</div>'
     }
+    createTables()
   }
-  createTables()
 }
 
 function createTables () {

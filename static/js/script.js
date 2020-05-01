@@ -3,6 +3,8 @@ const nQuestions = Number($('#nquest').text())
 const condition = Number($('#condition').text())
 let currentQ, answers, times
 let percentage = currentQ / nQuestions * 100
+let id
+let groupQ = false
 
 /**
  * Shuffle the elements of a given array, return the shuffled array.
@@ -25,6 +27,7 @@ function initializeSurvey () {
   times = {}
   answers.condition = condition
   times.condition = condition
+  idgroupQ()
   // NOT WORKING, CHECK
   // for (let i = 0; i < nQuestions; i++) {
   //   if ($(`#ans-${i}`).length) {
@@ -39,22 +42,21 @@ function initializeSurvey () {
   setClickEventListeners()
 }
 
+function idgroupQ () {
+  id = $(`#hidden-${currentQ}`).val()
+  groupQ = $(`#group-ans-${currentQ}`).length
+}
+
 function setClickEventListeners () {
   for (let i = 0; i < nQuestions; i++) {
-    $(`#slider-${i}`).off('click')
-    $(`#slider-${i}`).on('click', getSelected)
     $(`#group-ans-${i} > span > a`).off('click')
     $(`#group-ans-${i} > span > a`).on('click', getSelected)
-    $(`#ans-${i}-submit`).off('click')
-    let child = 0
-    if ($(`#ans-${i}`).children().length > 1) child = 1
-    $(`#ans-${i}-submit`).on('click', () => {
-      if ($(`#ans-${i}`).children()[child].value !== '') {
-        $(`#ans-${i}-submit`).off('click')
-        getSelected()
-      }
+    $(`#submit-${i}`).off('click')
+    $(`#submit-${i}`).on('click', () => {
+      $(`#submit-${i}`).off('click')
+      getSelected()
     })
-    if ($(`#ans-${i}`).children()[child]) $(`#ans-${i}`).children()[child].value = ''
+    // if ($(`#ans-${i}`).children()[child]) $(`#ans-${i}`).children()[child].value = ''
   }
   $('#start').on('click', () => {
     startSurvey()
@@ -70,40 +72,30 @@ function startSurvey () {
 }
 
 function getSelected () {
-  let child = 0
-  if ($(`#ans-${currentQ}`).children().length > 1) {
-    if ($(`#ans-${currentQ}`).children()[1].id) child = 1
-    else child = 0
-  }
-  $(`#slider-${currentQ}`).off('click')
-  $(`#group-ans-${currentQ} > span > a`).off('click')
-  let selected, id
-  if ($(`#ans-${currentQ}`).children()[child]) {
-    selected = $(`#ans-${currentQ}`).children()[child].value
-    id = $(`#ans-${currentQ}`).children()[child].id
-    if (id.substring(0, 3) === 'spr') {
-      date = new Date()
-      const elapsedT = date.getTime() - initialT
-      times[`spr${currentQ}_ans`] = elapsedT
-    }
-    $(`#ans-${currentQ} > textarea`)[0].focus()
-  }
+  let selected
+  selected = $(`#${id}`).val()
+
   if (selected !== undefined) {
     if (!isNaN(selected)) selected = Number(selected)
     answers[id] = selected
   } else {
+    $(`#group-ans-${currentQ} > span > a`).off('click')
+    const key = $(this).parent()[0].id
     selected = $(this).text()
-    id = $(this).parent()[0].id
     if (!isNaN(selected)) selected = Number(selected)
-    answers[id] = selected
+    answers[key] = selected
   }
+
+  if (id && id.substring(0, 3) === 'spr') {
+    date = new Date()
+    const elapsedT = date.getTime() - initialT
+    times[`spr${currentQ}_ans`] = elapsedT
+  }
+
   $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
     nextQuestion()
-    // if (id === 'age' || id === 'city') {
-    //   console.log(id)
-    //   $(`#ans-${currentQ} > textarea`).focus()
-    // }
     $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
+      $(`#${id}`).focus()
       if (currentQ === nQuestions) submitAnswers()
     })
   })
@@ -111,6 +103,7 @@ function getSelected () {
 
 function nextQuestion () {
   currentQ++
+  idgroupQ()
   updateProgressBar()
 }
 
@@ -161,8 +154,9 @@ $(document).ready(() => {
           times[`spr${currentQ}_${sprPos}`] = elapsedT
           sprPos++
         } else {
-          $(`#ans-input-${currentQ}`).removeClass('hidden')
-          $(`#ans-${currentQ} > textarea`)[0].focus()
+          $(`#ans-${currentQ}`).removeClass('hidden')
+          $(`#submit-${currentQ}`).removeClass('hidden')
+          $(`#${id}`).focus()
           date = new Date()
           initialT = date.getTime()
         }
