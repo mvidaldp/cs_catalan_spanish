@@ -58,13 +58,32 @@ function setClickEventListeners () {
     })
     // if ($(`#ans-${i}`).children()[child]) $(`#ans-${i}`).children()[child].value = ''
   }
+  $('#agreed').on('click', () => {
+    showInstructions()
+  })
   $('#start').on('click', () => {
     startSurvey()
   })
+  $('#continue').on('click', () => {
+    $('#instructions-2').addClass('hide')
+    nextQuestion()
+    $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
+      $(`#${id}`).focus()
+    })
+  })
+}
+
+function showInstructions () {
+  if (currentQ === 0) {
+    $('#welcome').css('display', 'none')
+    $('#instructions-1').removeClass('hide')
+  } else {
+    $('#instructions-2').removeClass('hide')
+  }
 }
 
 function startSurvey () {
-  $('#instructions').css('display', 'none')
+  $('#instructions-1').css('display', 'none')
   $('#survey').css('display', '')
   $('#progressbar').parent().css('visibility', '')
   $(`#ques-${currentQ}`).fadeToggle('slow')
@@ -93,11 +112,13 @@ function getSelected () {
   }
 
   $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
-    nextQuestion()
-    $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
-      $(`#${id}`).focus()
-      if (currentQ === nQuestions) submitAnswers()
-    })
+    if (currentQ !== 7) {
+      nextQuestion()
+      $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
+        $(`#${id}`).focus()
+        if (currentQ === nQuestions) submitAnswers()
+      })
+    } else showInstructions()
   })
 }
 

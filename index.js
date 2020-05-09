@@ -97,7 +97,7 @@ function parseSurvey (data) {
   for (const r of rows) {
     let ans, step, sliders
     const row = r.split('\t')
-    const type = row[2].trim()
+    const type = row[2].trim() // throws an error "cannot trim undefined" sometimes
     if (row[3].includes('-') && !row[3].includes('/')) ans = row[3].split('-')
     else if (row[3] && row[3].includes('/')) ans = row[3].split('/')
     if (row[4]) step = parseInt(row[4].trim())
