@@ -29,6 +29,7 @@ const inHTML = []
 const experiment = []
 
 const languages = ['Català', 'Castellà', 'Altres']
+const langCodes = ['ca', 'sp', 'o']
 
 // FUNCTIONS
 async function getSpreadSheet () {
@@ -141,7 +142,7 @@ function readFiles () {
   }
   generateContent()
 }
-let maxSpr = 0
+const sprLen = []
 function generateContent () {
   for (const e in experiment) {
     inHTML[e] = ''
@@ -151,7 +152,7 @@ function generateContent () {
         let spr = question.replace(/[,.?]/g, (x) => { return `${x}#` })
         spr = spr.split('#')
         spr.pop() // better include a whitespace after the characters on replace
-        if (spr.length > maxSpr) maxSpr = spr.length
+        sprLen.push(spr.length)
         question = ''
         for (const [idx, part] of spr.entries()) {
           question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
@@ -215,8 +216,8 @@ function generateContent () {
                             <form class="col s10" action="#">
                               <div class="valign-wrapper">
                                 <p class="range-field col s12">
-                                  <input id="${id}_${s}" step="${experiment[e][i].step}" autocomplete="off"
-                                  type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
+                                  <input id="${id}_${langCodes[s]}" step="${experiment[e][i].step}" autocomplete="off"
+                                   type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
                                 </p>
                               </div>
                             </form>
@@ -243,6 +244,7 @@ function generateContent () {
     }
     createTables()
   }
+  console.log(sprLen)
 }
 
 function createTables () {
@@ -270,10 +272,14 @@ function createTables () {
       default:
       // code block
     }
-    createA += `\n${experiment[0][i].id} ${type},`
+    const id = experiment[0][i].id
+    if (experiment[0][i].type !== 's') createA += `\n${id} ${type},`
+    else {
+      for (let s = 0; s < experiment[0][i].sliders; s++) createA += `\n${id}_${langCodes[s]} ${type},`
+    }
   }
   for (let i = 0; i < nSpr; i++) {
-    for (let j = 0; j < maxSpr; j++) createT += `\nspr${i}_${j} REAL,`
+    for (let j = 0; j < sprLen[i]; j++) createT += `\nspr${i}_${j} INTEGER,`
     createT += `\nspr${i}_ans INTEGER,`
   }
 
@@ -335,7 +341,7 @@ function serverRouting () {
 
 // CALLS
 // express options
-app.use('/static', express.static('static')) // use static folder
+app.use(express.static('static')) // use static folder
 app.use(bodyParser.urlencoded({
   extended: false
 }))
