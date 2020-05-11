@@ -130,14 +130,12 @@ function parseCondition (data) {
   }
   return condition
 }
-let nSpr
 function readFiles () {
   const quest = fs.readFileSync('./questionnaire.tsv', 'utf8')
   const questions = parseSurvey(quest)
   for (let i = 1; i < 4; i++) {
     const cond = fs.readFileSync(`./condition${i}.tsv`, 'utf8')
     const condition = parseCondition(cond)
-    nSpr = condition.length
     experiment.push(condition.concat(questions))
   }
   generateContent()
@@ -148,16 +146,17 @@ function generateContent () {
     inHTML[e] = ''
     for (let i = 0; i < experiment[e].length; i++) {
       let question = experiment[e][i].question
+      let spBar = `<a id="spbar-${i}" class="btn-floating btn-large pulse"><i class="material-icons">space_bar</i></a>`
       if (experiment[e][i].type === 'o' && question !== 'Ciutat/estat') {
         let spr = question.replace(/[,.?]/g, (x) => { return `${x}#` })
         spr = spr.split('#')
         spr.pop() // better include a whitespace after the characters on replace
-        sprLen.push(spr.length)
+        if (e === '1') sprLen.push(spr.length)
         question = ''
         for (const [idx, part] of spr.entries()) {
           question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
         }
-      }
+      } else spBar = ''
       let hideC = ' hidden'
       let gridC = 's12'
       let hideB = ''
@@ -165,6 +164,7 @@ function generateContent () {
       const type = experiment[e][i].type
       // change style="display: none;" for class="hide"?
       inHTML[e] += `<div id="ques-${i}" class="col s12 content-height" style="display: none;">
+                      ${spBar}
                       <h6 id="head-${i}" class="header col s12">
                         ${question}
                       </h6>`
@@ -175,13 +175,13 @@ function generateContent () {
           inHTML[e] += `<div id="ans-${i}"class="row center-align">
                           <div class="input-field col s2 offset-s5">
                             <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${id}" class="materialize-textarea" data-length="2"></textarea>
+                            <textarea id="${id}" class="materialize-textarea" data-length="2" autocomplete="off"></textarea>
                           </div>
                         </div>`
           break
         case 'c':
           inHTML[e] += extraD
-          for (const ans of experiment[e][i].answers) inHTML[e] += `<a class="btn-large lighten-3">${ans}</a>`
+          for (const ans of experiment[e][i].answers) inHTML[e] += `<a class="btn lighten-3">${ans}</a>`
           inHTML[e] += `</span>
                       </div>`
           break
@@ -195,7 +195,7 @@ function generateContent () {
           inHTML[e] += `<div id="ans-${i}" class="row center-align${hideC}">
                           <div class="input-field col ${gridC}">
                             <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${id}" class="materialize-textarea" data-length="500"></textarea>
+                            <textarea id="${id}" class="materialize-textarea" data-length="500" autocomplete="off"></textarea>
                           </div>
                         </div>`
           break
@@ -242,9 +242,8 @@ function generateContent () {
       }
       inHTML[e] += '</div>'
     }
-    createTables()
   }
-  console.log(sprLen)
+  createTables()
 }
 
 function createTables () {
@@ -278,7 +277,8 @@ function createTables () {
       for (let s = 0; s < experiment[0][i].sliders; s++) createA += `\n${id}_${langCodes[s]} ${type},`
     }
   }
-  for (let i = 0; i < nSpr; i++) {
+
+  for (let i = 0; i < sprLen.length; i++) {
     for (let j = 0; j < sprLen[i]; j++) createT += `\nspr${i}_${j} INTEGER,`
     createT += `\nspr${i}_ans INTEGER,`
   }

@@ -25,9 +25,9 @@ textarea.materialize-textarea {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: url(/fonts/MaterialIcons-Regular.eot);
+  src: url(../fonts/MaterialIcons-Regular.eot);
   /* For IE6-8 */
-  src: local('Material Icons'), local('MaterialIcons-Regular'), url(/fonts/MaterialIcons-Regular.woff2) format('woff2'), url(/fonts/MaterialIcons-Regular.woff) format('woff'), url(/fonts/MaterialIcons-Regular.ttf) format('truetype');
+  src: local('Material Icons'), local('MaterialIcons-Regular'), url(../fonts/MaterialIcons-Regular.woff2) format('woff2'), url(../fonts/MaterialIcons-Regular.woff) format('woff'), url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
 }
 
 .material-icons {
@@ -58,8 +58,16 @@ textarea.materialize-textarea {
   margin-right: auto;
 }
 
+.justify {
+  text-align: justify;
+}
+
+.smaller-font {
+  font-size: large;
+}
+
 img {
-  height: 13vh;
+  width: 20vw;
   margin: 5vh;
 }
 
@@ -70,6 +78,10 @@ img {
 .btn-large {
   margin: 20px;
   width: 175px;
+}
+
+.brn {
+  margin: 10px;
 }
 
 input[type=text]:not(.browser-default) {

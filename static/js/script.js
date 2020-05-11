@@ -4,7 +4,7 @@ const condition = Number($('#condition').text())
 let currentQ, answers, times
 let percentage = currentQ / nQuestions * 100
 let id
-let groupQ = false
+let sprReady = true
 
 /**
  * Shuffle the elements of a given array, return the shuffled array.
@@ -41,9 +41,8 @@ function initializeSurvey () {
   setClickEventListeners()
 }
 
-function idgroupQ () {
+function currentID () {
   id = $(`#hidden-${currentQ}`).val()
-  groupQ = $(`#group-ans-${currentQ}`).length
 }
 
 function setClickEventListeners () {
@@ -55,20 +54,13 @@ function setClickEventListeners () {
       $(`#submit-${i}`).off('click')
       getSelected()
     })
-    // if ($(`#ans-${i}`).children()[child]) $(`#ans-${i}`).children()[child].value = ''
   }
-  $('#agreed').on('click', () => {
-    showInstructions()
-  })
-  $('#start').on('click', () => {
-    startSurvey()
-  })
+  $('#agreed').on('click', () => showInstructions())
+  $('#start').on('click', () => startSurvey())
   $('#continue').on('click', () => {
     $('#instructions-2').addClass('hide')
     nextQuestion()
-    $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
-      $(`#${id}`).focus()
-    })
+    $(`#ques-${currentQ}`).fadeToggle('fast').promise().done(() => $(`#${id}`).focus())
   })
 }
 
@@ -76,37 +68,38 @@ function showInstructions () {
   if (currentQ === 0) {
     $('#welcome').css('display', 'none')
     $('#instructions-1').removeClass('hide')
-  } else {
-    $('#instructions-2').removeClass('hide')
-  }
+  } else $('#instructions-2').removeClass('hide')
 }
 
 function startSurvey () {
-  idgroupQ()
+  currentID()
   $('#instructions-1').css('display', 'none')
   $('#survey').css('display', '')
   $('#progressbar').parent().css('visibility', '')
-  $(`#ques-${currentQ}`).fadeToggle('slow')
+  $(`#ques-${currentQ}`).fadeToggle('fast')
   $('#logos').css('visibility', 'hidden')
 }
 
 function getSelected () {
-  let selected
-  selected = $(`#${id}`).val()
-
-  if (selected !== undefined) {
-    if (!isNaN(selected)) selected = Number(selected)
-    answers[id] = selected
+  const sliders = $(`#${id} input[type=range]`)
+  if (sliders.length > 0) {
+    for (let i = 0; i < sliders.length; i++) {
+      const id = sliders[i].id
+      const value = Number(sliders[i].value)
+      answers[id] = value
+    }
   } else {
-    $(`#group-ans-${currentQ} > span > a`).off('click')
-    const key = $(this).parent()[0].id
-    selected = $(this).text()
-    if (selected !== '') {
+    let selected
+    selected = $(`#${id}`).val()
+    if (selected !== undefined) {
+      if (!isNaN(selected)) selected = Number(selected)
+      answers[id] = selected
+    } else {
+      $(`#group-ans-${currentQ} > span > a`).off('click')
+      const key = $(this).parent()[0].id
+      selected = $(this).text()
       if (!isNaN(selected)) selected = Number(selected)
       answers[key] = selected
-    } else {
-      // TODO: Fix getting sliders values. This works on console, not here
-      console.log($(`#${id} input`))
     }
   }
 
@@ -118,10 +111,11 @@ function getSelected () {
     sprPos = 0
   }
 
-  $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
+  $(`#ques-${currentQ}`).fadeToggle('fast').promise().done(() => {
     if (currentQ !== 7) {
       nextQuestion()
-      $(`#ques-${currentQ}`).fadeToggle('slow').promise().done(() => {
+      $(`#ques-${currentQ}`).fadeToggle('fast').promise().done(() => {
+        if (id && id.includes('spr')) sprReady = true
         $(`#${id}`).focus()
         if (currentQ === nQuestions) submitAnswers()
       })
@@ -131,7 +125,7 @@ function getSelected () {
 
 function nextQuestion () {
   currentQ++
-  idgroupQ()
+  currentID()
   updateProgressBar()
 }
 
@@ -166,7 +160,7 @@ $(document).ready(() => {
   initializeSurvey()
   $(document).on('keypress', (e) => {
     if (e.keyCode === 32 && id && id.includes('spr')) {
-      if ($(`#spr${currentQ}_${sprPos}`).length || $(`#spr${currentQ}_${sprPos - 1}`).length) {
+      if (sprReady && ($(`#spr${currentQ}_${sprPos}`).length || $(`#spr${currentQ}_${sprPos - 1}`).length)) {
         $(`#spr${currentQ}_${sprPos}`).removeClass('hidden')
         date = new Date()
         if (!initialT) initialT = date.getTime()
@@ -176,9 +170,11 @@ $(document).ready(() => {
           console.log(`Saved: spr${currentQ}_${sprPos - 1} = ${elapsedT}`)
           initialT = date.getTime()
           if (!$(`#spr${currentQ}_${sprPos}`).length) {
+            $(`#spbar-${currentQ}`).addClass('hidden')
             $(`#ans-${currentQ}`).removeClass('hidden')
             $(`#submit-${currentQ}`).removeClass('hidden')
             $(`#${id}`).focus()
+            sprReady = false
           }
         }
         sprPos++
