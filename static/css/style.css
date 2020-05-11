@@ -80,8 +80,8 @@ img {
   width: 175px;
 }
 
-.brn {
-  margin: 10px;
+.btn {
+  margin: 20px;
 }
 
 input[type=text]:not(.browser-default) {
