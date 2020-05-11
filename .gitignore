@@ -118,3 +118,6 @@ experiment.lastupdate
 # Google APIs credentials
 gd-api.json
 service-account.json
+
+# VSCode
+.vscode
