@@ -341,7 +341,7 @@ function serverRouting () {
 
 // CALLS
 // express options
-app.use(express.static('static')) // use static folder
+app.use(express.static(`${__dirname}/static`))// use static folder
 app.use(bodyParser.urlencoded({
   extended: false
 }))

@@ -105,6 +105,7 @@ dist
 
 # eslint config
 .eslintrc
+.eslintrc.json
 
 # DB files
 *.db
