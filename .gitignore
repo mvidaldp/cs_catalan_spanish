@@ -122,3 +122,6 @@ service-account.json
 
 # VSCode
 .vscode
+
+# generated EJS
+condition-*.ejs
