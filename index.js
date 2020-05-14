@@ -2,7 +2,7 @@
 // requires
 const express = require('express')
 const bodyParser = require('body-parser')
-// const https = require('https')
+const beautifyHTML = require('js-beautify').html
 const fs = require('fs')
 const sqlite3 = require('sqlite3').verbose()
 const { google } = require('googleapis')
@@ -11,16 +11,24 @@ const { GoogleSpreadsheet } = require('google-spreadsheet') // GoogleSpreadsheet
 const creds = require('./service-account.json')
 const sheetID = '1FDvm7eVe0z9jubFPmdUYLWIGqjNV_7P1w_A-Oo4bn8Y'
 const doc = new GoogleSpreadsheet(sheetID)
+const drive = google.drive({
+  version: 'v3',
+  auth: gd.key
+})
+const lastUpdateExists = fs.existsSync('./experiment.lastupdate')
+const DBexists = fs.existsSync('./sqlite.db')
 const db = new sqlite3.Database('sqlite.db') // create and/or open the db
 
 // express webserver
 const app = express()
 const port = 3000
 
+const nConditions = 3
+// DB queries (autoincrement id inserted automatically)
 let insertA = `INSERT INTO answers (
-                  \`date\`,`
+               date,`
 let insertT = `INSERT INTO times (
-                  \`date\`,`
+               date,`
 // if err try to add ? before datetime for autoincrement (id)
 let insertAend = 'VALUES (datetime("now", "localtime"), '
 let insertTend = 'VALUES (datetime("now", "localtime"), '
@@ -30,40 +38,42 @@ const experiment = []
 
 const languages = ['Català', 'Castellà', 'Altres']
 const langCodes = ['ca', 'sp', 'o']
+let sprLen = []
 
 // FUNCTIONS
-async function getSpreadSheet () {
-  const drive = google.drive({
-    version: 'v3',
-    auth: gd.key
-  })
-
+// getSpreadSheet
+async function onlineModifiedTime () {
   const request = await drive.files.get({ fileId: sheetID, fields: 'modifiedTime' })
-  const modified = request.data.modifiedTime
+  const modifiedTime = request.data.modifiedTime
+  return modifiedTime
+}
 
-  let timestamp
+function newOrModifiedLocal (updatedTime) {
+  let timestamp, file, modified
   try {
-    if (fs.existsSync('./experiment.lastupdate')) {
-      timestamp = fs.readFileSync('./experiment.lastupdate', 'utf8')
-    } else {
-      fs.createWriteStream('experiment.lastupdate')
-      timestamp = undefined
-    }
+    if (lastUpdateExists) timestamp = fs.readFileSync('./experiment.lastupdate', 'utf8')
+    else timestamp = undefined
+    if (updatedTime !== timestamp) {
+      file = fs.createWriteStream('experiment.lastupdate')
+      file.write(updatedTime)
+      modified = true
+    } else modified = false
   } catch (err) {
     console.error(err)
   }
-  console.log('\nExperiment last update:')
+  console.log('Experiment last update:')
+  console.log(`ONLINE => ${updatedTime}`)
   console.log(`LOCAL  => ${timestamp}`)
-  console.log(`ONLINE => ${modified}`)
-  if (modified !== timestamp) {
-    const file = fs.createWriteStream('experiment.lastupdate')
-    file.write(modified)
+  return modified
+}
+
+async function getOnlineContent (newContent) {
+  if (newContent) {
     await doc.useServiceAccountAuth({
       client_email: creds.client_email,
       private_key: creds.private_key
     })
     await doc.loadInfo()
-    // const cols = { cat: 'cathegory', q: 'question', s: 'slider', ans: 'answers', type: 'type'}
     for (let i = 0; i < doc.sheetCount; i++) {
       const sheet = doc.sheetsByIndex[i]
       const sName = sheet.title
@@ -83,12 +93,28 @@ async function getSpreadSheet () {
         }
         if (ix < Object.keys(rows).length - 1) toWrite += '\n'
       }
-      fs.writeFile(`./${sName}.tsv`, Buffer.from(toWrite, 'utf8'), (err) => {
-        if (err) console.log(err)
-      })
+      fs.writeFileSync(`./${sName}.tsv`, Buffer.from(toWrite, 'utf8'))
     }
-    readFiles()
-  } else readFiles()
+    return true
+  } else return false
+}
+
+function parseCondition (data) {
+  const condition = []
+  const rows = data.split(/\r\n|\n/) // split by line
+  sprLen = []
+  for (const r of rows) { // all rows from condition
+    const row = r.split('\t')
+    condition.push({
+      id: row[0].trim(),
+      question: row[1].trim(),
+      type: row[2].trim()
+    })
+    // get and store SPR (self-paced reading) lengths
+    const spr = selfPacedReading(row[1].trim())
+    sprLen.push(spr.length)
+  }
+  return condition
 }
 
 function parseSurvey (data) {
@@ -116,190 +142,196 @@ function parseSurvey (data) {
   return survey
 }
 
-function parseCondition (data) {
-  const condition = []
-  const rows = data.split(/\r\n|\n/) // split by line
-  // for all rows read from "condition"
-  for (const r of rows) {
-    const row = r.split('\t')
-    condition.push({
-      id: row[0].trim(),
-      question: row[1].trim(),
-      type: row[2].trim()
-    })
-  }
-  return condition
-}
-function readFiles () {
+function readTSVs (online) {
   const quest = fs.readFileSync('./questionnaire.tsv', 'utf8')
   const questions = parseSurvey(quest)
-  for (let i = 1; i < 4; i++) {
-    const cond = fs.readFileSync(`./condition${i}.tsv`, 'utf8')
+  for (let i = 0; i < nConditions; i++) {
+    const cond = fs.readFileSync(`./condition${i + 1}.tsv`, 'utf8')
     const condition = parseCondition(cond)
     experiment.push(condition.concat(questions))
   }
-  generateContent()
+  return online
 }
-const sprLen = []
-function generateContent () {
-  for (const e in experiment) {
-    inHTML[e] = ''
-    for (let i = 0; i < experiment[e].length; i++) {
-      let question = experiment[e][i].question
-      let spBar = `<a id="spbar-${i}" class="btn-floating btn-large pulse"><i class="material-icons">space_bar</i></a>`
-      if (experiment[e][i].type === 'o' && question !== 'Ciutat/estat') {
-        let spr = question.replace(/[,.?]/g, (x) => { return `${x}#` })
-        spr = spr.split('#')
-        spr.pop() // better include a whitespace after the characters on replace
-        if (e === '1') sprLen.push(spr.length)
-        question = ''
-        for (const [idx, part] of spr.entries()) {
-          question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
-        }
-      } else spBar = ''
-      let hideC = ' hidden'
-      let gridC = 's12'
-      let hideB = ''
-      const id = experiment[e][i].id
-      const type = experiment[e][i].type
-      // change style="display: none;" for class="hide"?
-      inHTML[e] += `<div id="ques-${i}" class="col s12 content-height" style="display: none;">
-                      ${spBar}
-                      <h6 id="head-${i}" class="header col s12">
-                        ${question}
-                      </h6>`
-      const extraD = `<div id="group-ans-${i}" class="col s12">
-                        <span id=${id}>`
-      switch (type) {
-        case 'a':
-          inHTML[e] += `<div id="ans-${i}"class="row center-align">
-                          <div class="input-field col s2 offset-s5">
-                            <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${id}" class="materialize-textarea" data-length="2" autocomplete="off"></textarea>
-                          </div>
-                        </div>`
-          break
-        case 'c':
-          inHTML[e] += extraD
-          for (const ans of experiment[e][i].answers) inHTML[e] += `<a class="btn lighten-3">${ans}</a>`
-          inHTML[e] += `</span>
-                      </div>`
-          break
-        case 'o':
-          hideB = ' hidden'
-          if (experiment[e][i].id === 'city') {
-            hideC = ''
-            gridC = 's4 offset-s4'
-            hideB = ''
+
+function selfPacedReading (text) {
+  let spr = text.replace(/[,.?]/g, (x) => { return `${x}#` })
+  spr = spr.split('#')
+  spr.pop() // better include a whitespace after the characters on replace
+  return spr
+}
+
+async function generateHTML (read) {
+  if (read) {
+    for (const e in experiment) {
+      inHTML[e] = ''
+      for (let i = 0; i < experiment[e].length; i++) {
+        let question = experiment[e][i].question
+        let spBar = `<a id="spbar-${i}" class="btn-floating btn-large pulse"><i class="material-icons">space_bar</i></a>`
+        if (experiment[e][i].type === 'o' && question !== 'Ciutat/estat') {
+          const spr = selfPacedReading(question)
+          question = ''
+          for (const [idx, part] of spr.entries()) {
+            question += `<span id="spr${i}_${idx}" class="hidden">${part}</span>`
           }
-          inHTML[e] += `<div id="ans-${i}" class="row center-align${hideC}">
-                          <div class="input-field col ${gridC}">
-                            <i class="material-icons prefix">mode_edit</i>
-                            <textarea id="${id}" class="materialize-textarea" data-length="500" autocomplete="off"></textarea>
-                          </div>
-                        </div>`
-          break
-        case 's':
-          inHTML[e] += extraD
-          for (let s = 0; s < experiment[e][i].sliders; s++) {
-            const min = experiment[e][i].answers[0]
-            const max = experiment[e][i].answers[1]
-            inHTML[e] += `<div class="valign-wrapper">
-                            <div class="col s12">
-                              <span>${languages[s]}</span>
-                            </div>
-                          </div>
-                          <div class="valign-wrapper">
-                            <div class="col s1 valign-wrapper">
-                              <a class="btn-floating">${min}</a>
-                            </div>
-                            <form class="col s10" action="#">
-                              <div class="valign-wrapper">
-                                <p class="range-field col s12">
-                                  <input id="${id}_${langCodes[s]}" step="${experiment[e][i].step}" autocomplete="off"
-                                   type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
-                                </p>
-                              </div>
-                            </form>
-                            <div class="col s1 valign-wrapper flex-row-reverse">
-                              <a class="btn-floating">${max}</a>
+        } else spBar = ''
+        let hideC = ' hidden'
+        let gridC = 's12'
+        let hideB = ''
+        const id = experiment[e][i].id
+        const type = experiment[e][i].type
+        // change style="display: none;" for class="hide"?
+        inHTML[e] += `<div id="ques-${i}" class="col s12 content-height" style="display: none;">
+                        ${spBar}
+                        <h6 id="head-${i}" class="header col s12">
+                          ${question}
+                        </h6>`
+        const extraD = `<div id="group-ans-${i}" class="col s12">
+                          <span id=${id}>`
+        switch (type) {
+          case 'a':
+            inHTML[e] += `<div id="ans-${i}"class="row center-align">
+                            <div class="input-field col s2 offset-s5">
+                              <i class="material-icons prefix">mode_edit</i>
+                              <textarea id="${id}" class="materialize-textarea" data-length="2" autocomplete="off"></textarea>
                             </div>
                           </div>`
-          }
-          inHTML[e] += `</span>
-                      </div>`
-          break
-        default:
-        // recommended block
+            break
+          case 'c':
+            inHTML[e] += extraD
+            for (const ans of experiment[e][i].answers) inHTML[e] += `<a class="btn lighten-3">${ans}</a>`
+            inHTML[e] += `</span>
+                        </div>`
+            break
+          case 'o':
+            hideB = ' hidden'
+            if (experiment[e][i].id === 'city') {
+              hideC = ''
+              gridC = 's4 offset-s4'
+              hideB = ''
+            }
+            inHTML[e] += `<div id="ans-${i}" class="row center-align${hideC}">
+                            <div class="input-field col ${gridC}">
+                              <i class="material-icons prefix">mode_edit</i>
+                              <textarea id="${id}" class="materialize-textarea" data-length="500" autocomplete="off"></textarea>
+                            </div>
+                          </div>`
+            break
+          case 's':
+            inHTML[e] += extraD
+            for (let s = 0; s < experiment[e][i].sliders; s++) {
+              const min = experiment[e][i].answers[0]
+              const max = experiment[e][i].answers[1]
+              inHTML[e] += `<div class="valign-wrapper">
+                              <div class="col s12">
+                                <span>${languages[s]}</span>
+                              </div>
+                            </div>
+                            <div class="valign-wrapper">
+                              <div class="col s1 valign-wrapper">
+                                <a class="btn-floating">${min}</a>
+                              </div>
+                              <form class="col s10" action="#">
+                                <div class="valign-wrapper">
+                                  <p class="range-field col s12">
+                                    <input id="${id}_${langCodes[s]}" step="${experiment[e][i].step}" autocomplete="off"
+                                     type="range" min="${min}" max="${max}" value="${parseInt(max / 2)}">
+                                  </p>
+                                </div>
+                              </form>
+                              <div class="col s1 valign-wrapper flex-row-reverse">
+                                <a class="btn-floating">${max}</a>
+                              </div>
+                            </div>`
+            }
+            inHTML[e] += `</span>
+                        </div>`
+            break
+          default:
+          // recommended block
+        }
+        if (type !== 'c') {
+          inHTML[e] += `<div class="col s12">
+                          <input type="hidden" id="hidden-${i}" value="${id}">
+                          <button id="submit-${i}" class="btn-large lighten-3 center${hideB}">
+                            <i class="large material-icons">send</i>
+                          </button>
+                        </div>`
+        }
+        inHTML[e] += '</div>'
       }
-      if (type !== 'c') {
-        inHTML[e] += `<div class="col s12">
-                        <input type="hidden" id="hidden-${i}" value="${id}">
-                        <button id="submit-${i}" class="btn-large lighten-3 center${hideB}">
-                          <i class="large material-icons">send</i>
-                        </button>
-                      </div>`
-      }
-      inHTML[e] += '</div>'
+      const html = beautifyHTML(inHTML[e])
+      fs.writeFileSync(`./views/condition-${Number(e) + 1}.ejs`, Buffer.from(html, 'utf8'))
     }
   }
-  createTables()
 }
 
-function createTables () {
-  let createA = `CREATE TABLE IF NOT EXISTS answers (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 date TEXT,
-                 condition INTEGER,`
-  let createT = `CREATE TABLE IF NOT EXISTS times (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 date TEXT,
-                 condition INTEGER,`
+function removeIndent (multiline) {
+  const lines = multiline.split(/\r?\n/)
+  for (const l in lines) lines[l] = lines[l].trim()
+  return lines.join('\n')
+}
 
-  // prepare create and insert answers and time queries
-  for (let i = 0; i < experiment[0].length; i++) {
-    let type
-    switch (experiment[0][i].type) {
-      case 'a':
-      case 's':
-        type = 'INTEGER'
-        break
-      case 'c':
-      case 'o':
-        type = 'TEXT'
-        break
-      default:
-      // code block
+function createDBtables () {
+  if (!DBexists) {
+    let createA = `CREATE TABLE IF NOT EXISTS answers (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   date TEXT,
+                   condition INTEGER,`
+    let createT = `CREATE TABLE IF NOT EXISTS times (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   date TEXT,
+                   condition INTEGER,`
+
+    // prepare create and insert answers and time queries
+    for (let i = 0; i < experiment[0].length; i++) {
+      let type
+      switch (experiment[0][i].type) {
+        case 'a':
+        case 's':
+          type = 'INTEGER'
+          break
+        case 'c':
+        case 'o':
+          type = 'TEXT'
+          break
+        default:
+        // code block
+      }
+      const id = experiment[0][i].id
+      if (experiment[0][i].type !== 's') createA += `\n${id} ${type},`
+      else {
+        for (let s = 0; s < experiment[0][i].sliders; s++) createA += `\n${id}_${langCodes[s]} ${type},`
+      }
     }
-    const id = experiment[0][i].id
-    if (experiment[0][i].type !== 's') createA += `\n${id} ${type},`
-    else {
-      for (let s = 0; s < experiment[0][i].sliders; s++) createA += `\n${id}_${langCodes[s]} ${type},`
+
+    for (let i = 0; i < sprLen.length; i++) {
+      for (let j = 0; j < sprLen[i]; j++) createT += `\nspr${i}_${j} INTEGER,`
+      createT += `\nspr${i}_ans INTEGER,`
     }
+    createA = removeIndent(`${createA.substring(0, createA.length - 1)});`)
+    createT = removeIndent(`${createT.substring(0, createT.length - 1)});`)
+
+    // create answers and times tables (if none)
+    db.run(createA)
+    db.run(createT)
   }
-
-  for (let i = 0; i < sprLen.length; i++) {
-    for (let j = 0; j < sprLen[i]; j++) createT += `\nspr${i}_${j} INTEGER,`
-    createT += `\nspr${i}_ans INTEGER,`
-  }
-
-  createA = `${createA.substring(0, createA.length - 1)});`
-  createT = `${createT.substring(0, createT.length - 1)});`
-
-  // create answers and times tables (if none)
-  db.run(createA)
-  db.run(createT)
 }
 
 function serverRouting () {
+  // express options
+  app.use(express.static(`${__dirname}/static`))// use static folder
+  app.use(bodyParser.urlencoded({
+    extended: false
+  }))
+  app.use(bodyParser.json())
+  app.set('view engine', 'ejs')
+  app.listen(port, () => console.log(`Server running on port ${port}...`))
   app.get('/', (req, res) => {
-    const nConditions = experiment.length
     // pick a condition randomly
     const condition = Math.floor(Math.random() * nConditions)
     const nQuestions = experiment[condition].length
     console.log(`Condition: ${condition + 1}`)
     res.render('index', {
-      content: inHTML[condition],
       nQuestions: nQuestions,
       condition: condition + 1
     })
@@ -308,7 +340,6 @@ function serverRouting () {
   app.post('/save', (req) => {
     const answers = JSON.parse(req.body.answers)
     const times = JSON.parse(req.body.times)
-    // TODO: look for a cleaner/nicer way to get this vars
     console.log('\nExperiment completed:')
     console.log(answers)
     console.log(times)
@@ -328,10 +359,9 @@ function serverRouting () {
     }
 
     insertA = `${insertA.substring(0, insertA.length - 1)})\n${insertAend}`
-    insertA = `${insertA.substring(0, insertA.length - 2)});`
+    insertA = removeIndent(`${insertA.substring(0, insertA.length - 2)});`)
     insertT = `${insertT.substring(0, insertT.length - 1)})\n${insertTend}`
-    insertT = `${insertT.substring(0, insertT.length - 2)});`
-
+    insertT = removeIndent(`${insertT.substring(0, insertT.length - 2)});`)
     db.serialize(() => {
       db.run(insertA, aValues)
       db.run(insertT, tValues)
@@ -340,16 +370,28 @@ function serverRouting () {
 }
 
 // CALLS
-// express options
-app.use(express.static(`${__dirname}/static`))// use static folder
-app.use(bodyParser.urlencoded({
-  extended: false
-}))
-app.use(bodyParser.json())
-app.set('view engine', 'ejs')
-app.listen(port, () => console.log(`Server running on port ${port}...`))
-
 // survey processing, database handling and server routing
 // start survey generation process
-getSpreadSheet()
-serverRouting() // express server routing (GET and POST requests responses)
+// when finsishd, run express server routing (GET and POST requests responses))
+const onlineModified = onlineModifiedTime()
+onlineModified
+  .then(newOrModifiedLocal)
+  .then(getOnlineContent)
+  .then(readTSVs)
+  .then(generateHTML)
+  .then(createDBtables)
+  .then(serverRouting)
+
+// HOW TO DEBUG promises
+// const isDone = new Promise()
+// //...
+
+// const checkIfDone = () => {
+//   isDone
+//     .then(ok => {
+//       console.log(ok)
+//     })
+//     .catch(err => {
+//       console.error(error)
+//     })
+// }
