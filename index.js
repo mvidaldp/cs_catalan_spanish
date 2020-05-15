@@ -362,6 +362,8 @@ function serverRouting () {
     insertA = removeIndent(`${insertA.substring(0, insertA.length - 2)});`)
     insertT = `${insertT.substring(0, insertT.length - 1)})\n${insertTend}`
     insertT = removeIndent(`${insertT.substring(0, insertT.length - 2)});`)
+    //console.log(insertA)
+    //console.log(insertT)
     db.serialize(() => {
       db.run(insertA, aValues)
       db.run(insertT, tValues)

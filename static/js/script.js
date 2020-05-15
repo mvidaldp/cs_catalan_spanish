@@ -137,7 +137,7 @@ function updateProgressBar () {
 function submitAnswers () {
   const responses = JSON.stringify(answers)
   const timings = JSON.stringify(times)
-  $.post('/save', {
+  $.post('save', {
     answers: responses,
     times: timings
   })
