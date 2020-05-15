@@ -167,7 +167,6 @@ $(document).ready(() => {
         else {
           const elapsedT = date.getTime() - initialT
           times[`spr${currentQ}_${sprPos - 1}`] = elapsedT
-          console.log(`Saved: spr${currentQ}_${sprPos - 1} = ${elapsedT}`)
           initialT = date.getTime()
           if (!$(`#spr${currentQ}_${sprPos}`).length) {
             $(`#spbar-${currentQ}`).addClass('hidden')
