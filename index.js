@@ -7,15 +7,15 @@ const fs = require('fs')
 const sqlite3 = require('sqlite3').verbose()
 const { google } = require('googleapis')
 const gd = require('./gd-api.json')
+const sheetID = require('./sheetIDs.json')
 const { GoogleSpreadsheet } = require('google-spreadsheet') // GoogleSpreadsheet
 const creds = require('./service-account.json')
-const sheetID = '1FDvm7eVe0z9jubFPmdUYLWIGqjNV_7P1w_A-Oo4bn8Y'
-const doc = new GoogleSpreadsheet(sheetID)
+const docDesign = new GoogleSpreadsheet(sheetID.design)
+const docData = new GoogleSpreadsheet(sheetID.data)
 const drive = google.drive({
   version: 'v3',
   auth: gd.key
 })
-const lastUpdateExists = fs.existsSync('./experiment.lastupdate')
 const DBexists = fs.existsSync('./sqlite.db')
 const db = new sqlite3.Database('sqlite.db') // create and/or open the db
 
@@ -43,13 +43,14 @@ let sprLen = []
 // FUNCTIONS
 // getSpreadSheet
 async function onlineModifiedTime () {
-  const request = await drive.files.get({ fileId: sheetID, fields: 'modifiedTime' })
+  const request = await drive.files.get({ fileId: sheetID.design, fields: 'modifiedTime' })
   const modifiedTime = request.data.modifiedTime
   return modifiedTime
 }
 
 function newOrModifiedLocal (updatedTime) {
   let timestamp, file, modified
+  const lastUpdateExists = fs.existsSync('./experiment.lastupdate')
   try {
     if (lastUpdateExists) timestamp = fs.readFileSync('./experiment.lastupdate', 'utf8')
     else timestamp = undefined
@@ -69,13 +70,14 @@ function newOrModifiedLocal (updatedTime) {
 
 async function getOnlineContent (newContent) {
   if (newContent) {
-    await doc.useServiceAccountAuth({
+    await docDesign.useServiceAccountAuth({
       client_email: creds.client_email,
       private_key: creds.private_key
     })
-    await doc.loadInfo()
-    for (let i = 0; i < doc.sheetCount; i++) {
-      const sheet = doc.sheetsByIndex[i]
+    await docDesign.loadInfo()
+    // i < docDesign.sheetCount to check all sheets
+    for (let i = 0; i < nConditions + 1; i++) {
+      const sheet = docDesign.sheetsByIndex[i]
       const sName = sheet.title
       const rows = await sheet.getRows()
       await sheet.loadHeaderRow()
@@ -160,7 +162,7 @@ function selfPacedReading (text) {
   return spr
 }
 
-async function generateHTML (read) {
+function generateHTML (read) {
   if (read) {
     for (const e in experiment) {
       inHTML[e] = ''
@@ -192,7 +194,7 @@ async function generateHTML (read) {
             inHTML[e] += `<div id="ans-${i}"class="row center-align">
                             <div class="input-field col s2 offset-s5">
                               <i class="material-icons prefix">mode_edit</i>
-                              <textarea id="${id}" class="materialize-textarea" data-length="2" autocomplete="off"></textarea>
+                              <textarea id="${id}" class="materialize-textarea" data-length="2" min="10" max="99" minlength="2" maxlength="2" autocomplete="off"></textarea>
                             </div>
                           </div>`
             break
@@ -212,7 +214,7 @@ async function generateHTML (read) {
             inHTML[e] += `<div id="ans-${i}" class="row center-align${hideC}">
                             <div class="input-field col ${gridC}">
                               <i class="material-icons prefix">mode_edit</i>
-                              <textarea id="${id}" class="materialize-textarea" data-length="500" autocomplete="off"></textarea>
+                              <textarea id="${id}" class="materialize-textarea" data-length="500" maxlength="500" autocomplete="off"></textarea>
                             </div>
                           </div>`
             break
@@ -223,7 +225,7 @@ async function generateHTML (read) {
               const max = experiment[e][i].answers[1]
               inHTML[e] += `<div class="valign-wrapper">
                               <div class="col s12">
-                                <span>${languages[s]}</span>
+                                <span class="lang-label">${languages[s]}</span>
                               </div>
                             </div>
                             <div class="valign-wrapper">
@@ -319,16 +321,18 @@ function createDBtables () {
 
 function serverRouting () {
   // express options
-  app.use(express.static(`${__dirname}/static`))// use static folder
+  app.use(express.static(`${__dirname}/static`)) // use static folder
   app.use(bodyParser.urlencoded({
-    extended: false
+    extended: false // shallow parsing, nested objects not allowed
   }))
-  app.use(bodyParser.json())
-  app.set('view engine', 'ejs')
+  app.use(bodyParser.json()) // use JSON on express
+  app.set('view engine', 'ejs') // use EJS template engine
+  // listen to http request on the specified port
   app.listen(port, () => console.log(`Server running on port ${port}...`))
-  app.get('/', (req, res) => {
-    // pick a condition randomly
+  app.get('/', (req, res) => { // serve http request for index
+    // pick a condition randomly (index:[0-2], represented:[1-3])
     const condition = Math.floor(Math.random() * nConditions)
+    // number of questions for the selected condition
     const nQuestions = experiment[condition].length
     console.log(`Condition: ${condition + 1}`)
     res.render('index', {
@@ -337,13 +341,16 @@ function serverRouting () {
     })
   })
 
+  // store values into the DB and on TSV (backup)
   app.post('/save', (req) => {
+    console.log('Experiment completed:')
+    // parse stringified dicts of stored values
     const answers = JSON.parse(req.body.answers)
     const times = JSON.parse(req.body.times)
-    console.log('\nExperiment completed:')
     console.log(answers)
     console.log(times)
 
+    // store keys and values separately
     const aKeys = Object.keys(answers)
     const aValues = Object.values(answers)
     const tKeys = Object.keys(times)
@@ -358,17 +365,119 @@ function serverRouting () {
       insertTend += '?, '
     }
 
+    const time = new Date()
+    const year = time.getFullYear()
+    let month
+    // .getMonth() returns 0-11
+    if (time.getMonth() + 1 > 9) month = time.getMonth() + 1
+    else month = `0${time.getMonth() + 1}`
+    let day
+    if (time.getDate() > 9) day = time.getDate()
+    else day = `0${time.getDate()}`
+    const hour = time.getHours()
+    const minute = time.getMinutes()
+    const second = time.getSeconds()
+    const date = `${year}-${month}-${day} ${hour}:${minute}:${second}`
+
+    toTSV(date, answers, times)
+
+    toGSpreadSheet(date, answers, times)
+
+    // concatenate insert statements parts and remove extra endings
     insertA = `${insertA.substring(0, insertA.length - 1)})\n${insertAend}`
     insertA = removeIndent(`${insertA.substring(0, insertA.length - 2)});`)
     insertT = `${insertT.substring(0, insertT.length - 1)})\n${insertTend}`
     insertT = removeIndent(`${insertT.substring(0, insertT.length - 2)});`)
-    //console.log(insertA)
-    //console.log(insertT)
-    db.serialize(() => {
+    // console.log(insertA)
+    // console.log(insertT)
+    db.serialize(() => { // run the DB queries (inserts)
       db.run(insertA, aValues)
       db.run(insertT, tValues)
     })
   })
+}
+
+function toTSV (d, ans, tms) {
+  // if answers and times TSV backups exist (for adding header row)
+  const answersExists = fs.existsSync('./answers.tsv')
+  const timesExists = fs.existsSync('./times.tsv')
+
+  if (!answersExists) { // add headers if backup not created yet
+    let header = Object.keys(ans)
+    header.unshift('id', 'date')
+    header = header.join('\t')
+    fs.appendFileSync('./answers.tsv', header, 'utf8')
+  }
+
+  if (!timesExists) {
+    let header = Object.keys(tms)
+    header.unshift('id', 'date')
+    header = header.join('\t')
+    fs.appendFileSync('./times.tsv', header, 'utf8')
+  }
+
+  const content = fs.readFileSync('./answers.tsv', 'utf8')
+  const lines = content.split(/\r\n|\n/)
+  const id = lines.length
+
+  let answers = Object.values(ans)
+  answers.unshift(id, d)
+  answers = answers.join('\t')
+  // console.log(answers)
+  let times = Object.values(tms)
+  times.unshift(id, d)
+  times = times.join('\t')
+  // console.log(times)
+
+  // add line break and new answers and times to the files
+  fs.appendFile('./answers.tsv', `\n${answers}`, (err) => {
+    if (err) throw err
+  })
+  fs.appendFile('./times.tsv', `\n${times}`, (err) => {
+    if (err) throw err
+  })
+}
+
+async function toGSpreadSheet (d, ans, tms) {
+  await docData.useServiceAccountAuth({
+    client_email: creds.client_email,
+    private_key: creds.private_key
+  })
+  await docData.loadInfo()
+  const answersSheet = docData.sheetsByIndex[4]
+  const timesSheet = docData.sheetsByIndex[5]
+
+  let aHeaders = true
+  let tHeaders = true
+  await answersSheet.loadHeaderRow().catch((err) => {
+    if (err) aHeaders = false
+  })
+  await timesSheet.loadHeaderRow().catch((err) => {
+    if (err) tHeaders = false
+  })
+
+  if (!aHeaders) {
+    const aKeys = Object.keys(ans)
+    aKeys.unshift('id', 'date')
+    await answersSheet.resize({ rowCount: 1000, columnCount: aKeys.length })
+    await answersSheet.setHeaderRow(aKeys)
+  }
+  if (!tHeaders) {
+    const tKeys = Object.keys(tms)
+    tKeys.unshift('id', 'date')
+    await timesSheet.resize({ rowCount: 1000, columnCount: tKeys.length })
+    await timesSheet.setHeaderRow(tKeys)
+  }
+
+  const rows = await answersSheet.getRows()
+  const id = rows.length + 1 // since it does not count the header (first row)
+
+  ans.id = id
+  ans.date = d
+  tms.id = id
+  tms.date = d
+  await answersSheet.addRow(ans)
+  await timesSheet.addRow(tms)
 }
 
 // CALLS
