@@ -116,9 +116,10 @@ dist
 # experiment update timestamp
 experiment.lastupdate
 
-# Google APIs credentials
+# Google APIs credentials and sheet IDs
 gd-api.json
 service-account.json
+sheetIDs.json
 
 # VSCode
 .vscode
