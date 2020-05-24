@@ -99,6 +99,7 @@ function getSelected () {
     selected = $(`#${id}`).val()
     if (selected !== undefined) {
       if (!isNaN(selected)) selected = Number(selected)
+      else selected = selected.trim()
       answers[id] = selected
     } else {
       $(`#group-ans-${currentQ} > span > a`).off('click')
