@@ -85,11 +85,11 @@ img {
 }
 
 .btn i {
-  font-size: none;
+  font-size: 1rem;
 }
 
 .btn-floating i {
-  font-size: none;
+  font-size: 1rem;
 }
 
 input[type=text]:not(.browser-default) {
