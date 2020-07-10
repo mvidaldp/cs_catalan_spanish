@@ -84,6 +84,14 @@ img {
   margin: 20px;
 }
 
+.btn i {
+  font-size: none;
+}
+
+.btn-floating i {
+  font-size: none;
+}
+
 input[type=text]:not(.browser-default) {
   font-size: 30px;
 }
