@@ -1,5 +1,5 @@
 ## What?
-Catalan-Spanish code switching web-based online experiment including a Bilingual Language Profile building questionnaire.
+Catalan-Spanish code-switching web-based online experiment including a Bilingual Language Profile building questionnaire. 
 
 ## How?
 - Backend: NodeJS
