@@ -13,18 +13,18 @@
   "author": "mvidaldp",
   "license": "MIT",
   "dependencies": {
-    "ejs": "^3.1.2",
+    "ejs": "^3.1.5",
     "express": "^4.17.1",
-    "google-spreadsheet": "^3.0.11",
+    "google-spreadsheet": "^3.0.14",
     "googleapis": "^49.0.0",
-    "js-beautify": "^1.11.0",
-    "sqlite3": "^4.1.1"
+    "js-beautify": "^1.13.0",
+    "sqlite3": "^4.2.0"
   },
   "devDependencies": {
     "eslint": "^6.8.0",
-    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.1"
+    "eslint-plugin-standard": "^4.1.0"
   }
 }
